@@ -263,8 +263,9 @@ module Compute
             end
 
             ###CHECK###
-            s = @sprintf("semimajor %.3f, semiminor %.3f", semimajor_length, semiminor_length)
-            println(s)
+            println(
+                @sprintf "semimajor %.3f, semiminor %.3f, angle %.3f %.3f %.3f" semimajor_length semiminor_length semimajor_angle_x semimajor_angle_y semimajor_angle_z
+            )
             ###CHECK###
 
         end
@@ -353,8 +354,6 @@ module Output
     Plot points, circumscribed circle & circumscribed ellipse
     """
     function plot_points_circumscribed(param, points, circle, ellipse)
-        s = @sprintf("ellipse's semimajor axis %.3f, semiminor axis %.3f & angle %.3f", ellipse.semimajor, ellipse.semiminor, ellipse.angle)
-        println(s)
 
         # Point group
         p = scatter(
