@@ -362,17 +362,17 @@ module Output
     2. Multiply radius
     2. Shift the centre of shpere
     """
-    function sphere_shape(centre_x, centre_y, centre_z, radius)
+    function sphere_shape(circle)
         #1
         x_tmp, y_tmp, z_tmp = compute_sphere()
 
         # 2
-        x_tmp *= radius
-        y_tmp *= radius
-        z_tmp *= radius
+        x_tmp *= circle.radius
+        y_tmp *= circle.radius
+        z_tmp *= circle.radius
 
         # 3
-        centre_x .+ x_tmp, centre_y .+ y_tmp, centre_z .+ z_tmp
+        circle.centre_x .+ x_tmp, circle.centre_y .+ y_tmp, circle.centre_z .+ z_tmp
     end
 
 
@@ -383,27 +383,22 @@ module Output
     3. Rotation by angle
     4. Shift the centre of ellipse
     """
-    function spheroid_shape(
-        centre_x, centre_y, centre_z,
-        radius,
-        semimajor, semiminor,
-        angle_x, angle_y, angle_z,
-    )
+    function spheroid_shape(circle, ellipse)
         # 1
         x_tmp, y_tmp, z_tmp = compute_sphere()
 
         # 2
-        x_tmp *= semimajor
-        y_tmp *= semiminor
-        z_tmp *= semiminor
+        x_tmp *= ellipse.semimajor
+        y_tmp *= ellipse.semiminor
+        z_tmp *= ellipse.semiminor
 
         # 3
-        x_z, y_z = compute_rotation_counterclockwise(x_tmp, y_tmp, angle_z)  # Along z axis
-        x_yz, z_y = compute_rotation_counterclockwise(x_z, z_tmp, angle_y)  # Along y axis
-        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, angle_x)  # Along x axis
+        x_z, y_z = compute_rotation_counterclockwise(x_tmp, y_tmp, ellipse.angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z_tmp, ellipse.angle_y)  # Along y axis
+        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, ellipse.angle_x)  # Along x axis
 
         # 4
-        centre_x .+ x_yz, centre_y .+ y_xz, centre_z .+ z_xy
+        circle.centre_x .+ x_yz, circle.centre_y .+ y_xz, circle.centre_z .+ z_xy
 
     end
 
@@ -495,10 +490,7 @@ module Output
         close(pointsfile)
 
         # Sphere information
-        sphere = sphere_shape(
-            circle.centre_x, circle.centre_y, circle.centre_z,
-            circle.radius
-        )
+        sphere = sphere_shape(circle)
         dims_sphere = size.(sphere)
         lens_sphere = length.(sphere)
 
@@ -509,12 +501,7 @@ module Output
         close(spherefile)
 
         # Spheroid information
-        spheroid = spheroid_shape(
-            circle.centre_x, circle.centre_y, circle.centre_z,
-            circle.radius,
-            ellipse.semimajor, ellipse.semiminor,
-            ellipse.angle_x, ellipse.angle_y, ellipse.angle_z
-        )
+        spheroid = spheroid_shape(circle, ellipse)
         dims_spheroid = size.(spheroid)
         lens_spheroid = length.(spheroid)
 
