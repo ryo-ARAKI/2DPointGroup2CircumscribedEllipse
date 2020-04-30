@@ -15,8 +15,11 @@ module ParamVar
         semimajor::Float64  # Region of points distribution
         semiminor::Float64
         angle_x::Float64   # Angle of points distribution
-        angle_y::Float64   # Angle of points distribution
-        angle_z::Float64   # Angle of points distribution
+        angle_y::Float64
+        angle_z::Float64
+        shift_x::Float64   # Shift of points distribution
+        shift_y::Float64
+        shift_z::Float64
     end
 
     """
@@ -119,9 +122,14 @@ module Compute
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, dist.angle_y)  # Along y axis
         y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, dist.angle_x)  # Along x axis
 
-        points.x = x_yz
-        points.y = y_xz
-        points.z = z_xy
+        # Shift rectangular region
+        x_shift = x_yz .+ dist.shift_x
+        y_shift = y_xz .+ dist.shift_y
+        z_shift = z_xy .+ dist.shift_z
+
+        points.x = x_shift
+        points.y = y_shift
+        points.z = z_shift
     end
 
 
@@ -555,12 +563,16 @@ param = ParamVar.Parameters(
 semimajor = 0.6 * x_lim
 semiminor = 0.2 * x_lim
 angle_x = 0.2 * π  # Rotation along x axis
-angle_y = 0.4 * π  # y axis
-angle_z = 0.6 * π  # z axis
+angle_y = 0.4 * π
+angle_z = 0.6 * π
+shift_x = 0.1  # Shift along x axis
+shift_y = 0.2
+shift_z = 0.3
 
 dist = ParamVar.Distribution(
     semimajor, semiminor,
-    angle_x, angle_y, angle_z
+    angle_x, angle_y, angle_z,
+    shift_x, shift_y, shift_z
 )
 
 println("Given data:")
