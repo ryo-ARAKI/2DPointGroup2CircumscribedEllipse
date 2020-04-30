@@ -262,13 +262,12 @@ module Compute
                 semiminor_length -= delta
             end
 
-            ###CHECK###
-            println(
-                @sprintf "semimajor %.3f, semiminor %.3f, angle %.3f %.3f %.3f" semimajor_length semiminor_length semimajor_angle_x semimajor_angle_y semimajor_angle_z
-            )
-            ###CHECK###
-
         end
+
+        println("\nResult:")
+        println(
+            @sprintf "semimajor %.3f, semiminor %.3f, angle %.3f %.3f %.3f" semimajor_length semiminor_length semimajor_angle_x semimajor_angle_y semimajor_angle_z
+        )
 
         ellipse.semimajor = semimajor_length
         ellipse.semiminor = semiminor_length
@@ -344,7 +343,7 @@ module Output
     Origin = zero, radius=1
     """
     function compute_sphere()
-        dim = 10
+        dim = 20
         θ = range(0, stop=π, length=dim)
         ϕ = range(0, stop=2*π, length=dim)
 
@@ -576,6 +575,11 @@ dist = ParamVar.Distribution(
     angle_x, angle_y, angle_z
 )
 
+println("Given data:")
+println(
+    @sprintf "semimajor %.3f, semiminor %.3f, angle %.3f %.3f %.3f" dist.semimajor dist.semiminor dist.angle_x dist.angle_y dist.angle_z
+)
+
 x = Array{Float64}(undef, param.num_points)
 y = Array{Float64}(undef, param.num_points)
 z = Array{Float64}(undef, param.num_points)
@@ -623,10 +627,12 @@ ellipse = ParamVar.Ellipse(
 search_circumscribed_ellipse(param, points, circle, ellipse)
 
 ###CHECK###
-# # set ellipse for check plot
-# ellipse.semimajor = param.semimajor_distribution
-# ellipse.semiminor = param.semiminor_distribution
-# ellipse.angle = param.angle_distribution
+# set ellipse for check plot
+# ellipse.semimajor = dist.semimajor
+# ellipse.semiminor = dist.semiminor
+# ellipse.angle_x = dist.angle_x
+# ellipse.angle_y = dist.angle_y
+# ellipse.angle_z = dist.angle_z
 ###CHECK###
 
 """
