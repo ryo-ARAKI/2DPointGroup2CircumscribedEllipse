@@ -493,7 +493,7 @@ module Output
         # Points information
         pointsfile = open("./tmp/points.dat","w")
         for itr_point = 1:param.num_points
-            write(pointsfile, "$(points.x[itr_point])\t$(points.z[itr_point])\t$(points.z[itr_point])\n")
+            write(pointsfile, "$(points.x[itr_point])\t$(points.y[itr_point])\t$(points.z[itr_point])\n")
         end
         close(pointsfile)
 
