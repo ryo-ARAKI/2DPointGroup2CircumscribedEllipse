@@ -68,6 +68,7 @@ using Distributions
         points.y = y_rot
     end
 
+
     """
     Compute distance between two points
     """
@@ -79,6 +80,7 @@ using Distributions
 
     """
     Find centre of circumscribed circle of given point group
+    cf. https://www.ipsj.or.jp/07editj/promenade/4309.pdf p.6-7
     """
     function search_circumscribed_circle(param, points, circle)
         # Initial guess = corner of region
@@ -124,7 +126,7 @@ using Distributions
 
 
     """
-    Find circumscribed ellipse of given point group
+    Find circumscribed ellipse of given point group based on circumscribed circle
     """
     function search_circumscribed_ellipse(param, points, circle, ellipse)
 
@@ -252,6 +254,7 @@ gr()
     end
 end
 
+
 # ========================================
 # Main function
 # ========================================
@@ -272,6 +275,7 @@ using .Output:
 plot_points,
 plot_points_circle,
 plot_points_ellipse
+
 
 # ----------------------------------------
 ## Declare parameters
@@ -325,8 +329,7 @@ plot_points_circle(param, points, circle)
 ## Find a circumscribed ellipse of point group
 ## Define
 ## - centre
-## - semimajor axis
-## - semininor axis
+## - semimajor & semininor axis
 ## - angle of semimajor axis & x axis
 # ----------------------------------------
 semimajor = 0.0
