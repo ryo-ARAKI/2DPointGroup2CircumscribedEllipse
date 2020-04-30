@@ -352,7 +352,7 @@ module Output
     Origin = zero, radius=1
     """
     function compute_sphere()
-        dim = 20
+        dim = 30
         θ = range(0, stop=π, length=dim)
         ϕ = range(0, stop=2*π, length=dim)
 
@@ -549,7 +549,7 @@ using .Output:
 # ----------------------------------------
 ## Declare parameters
 # ----------------------------------------
-num_points = 10
+num_points = 50
 x_lim = 1.0
 
 param = ParamVar.Parameters(
