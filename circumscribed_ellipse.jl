@@ -541,12 +541,14 @@ gr(
 )
 using .ParamVar
 using .Compute:
-distribute_points,
-search_circumscribed_circle,
-search_circumscribed_ellipse
+    distribute_points,
+    search_circumscribed_circle,
+    search_circumscribed_ellipse
 using .Output:
-plot_points,
-plot_points_circumscribed
+    plot_points,
+    plot_points_circumscribed,
+    out_points_circumscribed
+
 
 
 # ----------------------------------------
