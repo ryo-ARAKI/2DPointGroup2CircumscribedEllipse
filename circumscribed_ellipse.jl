@@ -90,6 +90,15 @@ module Compute
     using Distributions
 
     """
+    Compute distance between two points
+    """
+    function compute_distance(x1, y1, z1, x2, y2, z2)
+        dist_square = (x1-x2)^2 + (y1-y2)^2 + (z1-z2)^2
+        return sqrt(dist_square)
+    end
+
+
+    """
     Distribute points in rectangular region & perform rotation
     """
     function distribute_points(param, dist, points)
