@@ -14,9 +14,12 @@ module ParamVar
         angle_distribution::Float64   # Angle of points distribution
     end
 
+    """
+    For point group
+    """
     mutable struct Points
-        x::Array{Float64}  # x coordinate of point group
-        y::Array{Float64}  # y coordinate of point group
+        x::Array{Float64}  # x coordinate
+        y::Array{Float64}  # y coordinate
     end
 end
 
@@ -54,7 +57,6 @@ Module for plot
 module Output
 using Plots
 gr()
-
 
     """
     Plot points
@@ -107,20 +109,13 @@ param = ParamVar.Parameters(
 )
 
 
-
-
-# ----------------------------------------
-## Declare variables & arrays
-# ----------------------------------------
-x = Array{Float64}(undef, param.num_points)
-y = Array{Float64}(undef, param.num_points)
-
-points = ParamVar.Points(x, y)
-
-
 # ----------------------------------------
 ## Define 2d point group
 # ----------------------------------------
+x = Array{Float64}(undef, param.num_points)
+y = Array{Float64}(undef, param.num_points)
+points = ParamVar.Points(x, y)
+
 points.x, points.y = distribute_points(param)
 
 ###CHECK###
