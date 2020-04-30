@@ -150,11 +150,12 @@ using Distributions
     Find circumscribed ellipse of given point group based on circumscribed circle
     1. Find the most distant point
     2. Define semimajor axis length & angle as origin <-> the most distant point
-    3. Apply inverse rotation of point group by semimajor axis angle
-    4. Adjust semimajor axis: x -> x/a
+    3. Shift by the centre coordinate
+    4. Apply inverse rotation of point group by semimajor axis angle
+    5. Adjust semimajor axis: x -> x/a
     -----iteration for semiminor axis length (originally circle radius)
-    5. Adjust semiminor axis: y -> y/b
-    6. Confirm all points are included in the standard circle of radius=1
+    6. Adjust semiminor axis: y -> y/b
+    7. Confirm all points are included in the standard circle of radius=1
         If so, decrease the semiminor axis length by delta
         If not, exit the loop & define the semiminor axis length
     -----end iteration for semiminor axis
@@ -183,10 +184,14 @@ using Distributions
         )
         semimajor_angle = atan(distant_y, distant_x)
 
-        # 3. Apply inverse rotation of point group by semimajor axis angle
-        x_rot, y_rot = compute_rotation_clockwise(points.x, points.y, semimajor_angle)
+        # 3. Shift by the centre coordinate
+        x_shift = points.x .- circle.centre_x
+        y_shift = points.y .- circle.centre_y
 
-        # 4. Adjust semimajor axis: x -> x/a
+        # 4. Apply inverse rotation of point group by semimajor axis angle
+        x_rot, y_rot = compute_rotation_clockwise(x_shift, y_shift, semimajor_angle)
+
+        # 5. Adjust semimajor axis: x -> x/a
         x_std = x_rot / semimajor_length
 
         # parameter setting for while-loop
@@ -196,13 +201,13 @@ using Distributions
 
         while flag_all_points_in_circle
 
-            # 5. Adjust semiminor axis: y -> y/b
+            # 6. Adjust semiminor axis: y -> y/b
             y_std = y_rot / semiminor_length
 
-            # 6. Confirm all points are included in the circle
+            # 7. Confirm all points are included in the circle
             for itr_point in 1:param.num_points
                 dist = compute_distance(
-                    circle.centre_x, circle.centre_x,
+                    0.0, 0.0,
                     x_std[itr_point], y_std[itr_point]
                 )
 
@@ -271,15 +276,18 @@ gr()
     1. Circle of radius=1: x^2+y^2=1
     2. Adjust semimajor/minor axis: x -> ax, y -> by
     3. Rotation by angle
+    4. Shift the centre of ellipse
     """
     function ellipse_shape(centre_x, centre_y, semimajor, semiminor, angle)
         θ = LinRange(0, 2*π, 100)
-        # 1 & 2
-        x_tmp = semimajor * (centre_x .+ sin.(θ))
-        y_tmp = semiminor * (centre_y .+ cos.(θ))
+        # 2
+        x_tmp = semimajor * sin.(θ)
+        y_tmp = semiminor * cos.(θ)
         # 3
-        x_tmp .* cos(angle) - y_tmp .* sin(angle),
-        x_tmp .* sin(angle) + y_tmp .* cos(angle)
+        x_rot = x_tmp .* cos(angle) - y_tmp .* sin(angle)
+        y_rot = x_tmp .* sin(angle) + y_tmp .* cos(angle)
+        # 4
+        x_rot .+ centre_x, y_rot .+ centre_y
     end
 
 
