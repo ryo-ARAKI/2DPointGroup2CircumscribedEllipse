@@ -49,6 +49,37 @@ module Compute
 using Distributions
 
     """
+    Compute distance between two points
+    """
+    function compute_distance(x1, y1, x2, y2)
+        dist_square = (x1-x2)^2 + (y1-y2)^2
+        return sqrt(dist_square)
+    end
+
+
+    """
+    Compute rotation by counter-clockwise
+    """
+    function compute_rotation_counterclockwise(x, y, θ)
+        x_new = x .* cos(θ) - y .* sin(θ)
+        y_new = x .* sin(θ) + y .* cos(θ)
+
+        return x_new, y_new
+    end
+
+
+    """
+    Compute rotation by clockwise
+    """
+    function compute_rotation_clockwise(x, y, θ)
+        x_new =  x .* cos(θ) + y .* sin(θ)
+        y_new = -x .* sin(θ) + y .* cos(θ)
+
+        return x_new, y_new
+    end
+
+
+    """
     Distribute points in rectangular region & perform rotation
     """
     function distribute_points(param, points)
@@ -61,20 +92,10 @@ using Distributions
             param.num_points)
 
         # Rotate rectangular region
-        x_rot = x .* cos(param.angle_distribution) - y .* sin(param.angle_distribution)
-        y_rot = x .* sin(param.angle_distribution) + y .* cos(param.angle_distribution)
+        x_rot, y_rot = compute_rotation_counterclockwise(x, y, param.angle_distribution)
 
         points.x = x_rot
         points.y = y_rot
-    end
-
-
-    """
-    Compute distance between two points
-    """
-    function compute_distance(x1, y1, x2, y2)
-        dist_square = (x1-x2)^2 + (y1-y2)^2
-        return sqrt(dist_square)
     end
 
 
