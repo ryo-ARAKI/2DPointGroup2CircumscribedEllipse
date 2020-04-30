@@ -1,5 +1,5 @@
 #=
-Julia program to find a circumscribed ellipse for given 2d point data set
+Julia program to find a circumscribed ellipse for given 3d point data set
 =#
 
 """

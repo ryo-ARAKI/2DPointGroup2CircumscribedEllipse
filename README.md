@@ -1,2 +1,2 @@
-# 2DPointGroup2CircumscribedEllipse
-Find a circumscribed ellipse for given 2d point data set
+# 3DPointGroup2CircumscribedEllipse
+Find a circumscribed ellipse for given 3d point data set
