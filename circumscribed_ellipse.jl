@@ -333,10 +333,78 @@ module Output
         x_tmp = semimajor * sin.(θ)
         y_tmp = semiminor * cos.(θ)
         # 3
-        x_rot = x_tmp .* cos(angle) - y_tmp .* sin(angle)
-        y_rot = x_tmp .* sin(angle) + y_tmp .* cos(angle)
+        x_rot, y_rot = compute_rotation_counterclockwise(x_tmp, y_tmp, angle)
         # 4
         x_rot .+ centre_x, y_rot .+ centre_y
+    end
+
+
+    """
+    Compute standard sphere
+    Origin = zero, radius=1
+    """
+    function compute_sphere()
+        dim = 10
+        θ = range(0, stop=π, length=dim)
+        ϕ = range(0, stop=2*π, length=dim)
+
+        x_tmp = sin.(θ) * cos.(ϕ)'
+        y_tmp = sin.(θ) * sin.(ϕ)'
+        z_tmp = cos.(θ) * ones(dim)'
+
+        return x_tmp, y_tmp, z_tmp
+    end
+
+
+    """
+    Define sphere shape
+    1. Sphere of radius=1: x^2+y^2+z^2=1
+    2. Multiply radius
+    2. Shift the centre of shpere
+    """
+    function sphere_shape(centre_x, centre_y, centre_z, radius)
+        #1
+        x_tmp, y_tmp, z_tmp = compute_sphere()
+
+        # 2
+        x_tmp *= radius
+        y_tmp *= radius
+        z_tmp *= radius
+
+        # 3
+        centre_x .+ x_tmp, centre_y .+ y_tmp, centre_z .+ z_tmp
+    end
+
+
+    """
+    Define spheroid shape
+    1. Sphere of radius=1: x^2+y^2+z^2=1
+    2. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
+    3. Rotation by angle
+    4. Shift the centre of ellipse
+    """
+    function spheroid_shape(
+        centre_x, centre_y, centre_z,
+        radius,
+        semimajor, semiminor,
+        angle_x, angle_y, angle_z,
+    )
+        # 1
+        x_tmp, y_tmp, z_tmp = compute_sphere()
+
+        # 2
+        x_tmp *= semimajor
+        y_tmp *= semiminor
+        z_tmp *= semiminor
+
+        # 3
+        x_z, y_z = compute_rotation_counterclockwise(x_tmp, y_tmp, angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z_tmp, angle_y)  # Along y axis
+        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, angle_x)  # Along x axis
+
+        # 4
+        centre_x .+ x_yz, centre_y .+ y_xz, centre_z .+ z_xy
+
     end
 
 
