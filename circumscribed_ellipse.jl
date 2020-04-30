@@ -30,6 +30,15 @@ module ParamVar
         centre_y::Float64
         radius::Float64
     end
+
+    """
+    For circumscribed ellipse
+    """
+    mutable struct Ellipse
+        semimajor::Float64
+        semiminor::Float64
+        angle::Float64
+    end
 end
 
 
@@ -112,6 +121,14 @@ using Distributions
         circle.centre_y = centre_y
         circle.radius = dist_max
     end
+
+
+    """
+    Find circumscribed ellipse of given point group
+    """
+    function search_circumscribed_ellipse(param, points, circle, ellipse)
+
+    end
 end
 
 
@@ -181,6 +198,58 @@ gr()
 
         savefig(p!, "./tmp/circumscribed_circle.png")
     end
+
+
+    """
+    Define ellipse shape
+    1. Circle of radius=1: x^2+y^2=1
+    2. Adjust semimajor/minor axis: x^2 -> x^2/a^2, y^2 -> y^2/b^2
+    3. Rotation by angle
+    """
+    function ellipse_shape(centre_x, centre_y, semimajor, semiminor, angle)
+        θ = LinRange(0, 2*π, 100)
+        # 1 & 2
+        x_tmp = semimajor * (centre_x .+ sin.(θ))
+        y_tmp = semiminor * (centre_y .+ cos.(θ))
+        # 3
+        x_tmp .* cos(angle) - y_tmp .* sin(angle),
+        x_tmp .* sin(angle) + y_tmp .* cos(angle)
+    end
+
+
+    """
+    Plot points & circumscribed ellipse
+    """
+    function plot_points_ellipse(param, points, circle, ellipse)
+        p = scatter(
+            points.x, points.y,
+            markercolor = :black,
+            aspect_ratio = 1,
+            xlims = (-param.x_lim, param.x_lim),
+            ylims = (-param.x_lim, param.x_lim),
+            axis = nothing,
+            size=(640, 640)
+        )
+        p! = scatter!(
+            [circle.centre_x], [circle.centre_y],
+            markercolor = :red
+        )
+        p! = plot!(
+            ellipse_shape(
+                circle.centre_x, circle.centre_y,  # Centre is same as circle
+                ellipse.semimajor, ellipse.semiminor, ellipse.angle),
+            seriestype = [:shape,],
+            lw = 0.5,
+            c = :green,
+            linecolor = :black,
+            legend = false,
+            fillalpha =0.2,
+            aspect_ratio = 1,
+            title = "circumscribed ellipse"
+        )
+
+        savefig(p!, "./tmp/circumscribed_ellipse.png")
+    end
 end
 
 # ========================================
@@ -197,10 +266,12 @@ gr(
 using .ParamVar
 using .Compute:
 distribute_points,
-search_circumscribed_circle
+search_circumscribed_circle,
+search_circumscribed_ellipse
 using .Output:
 plot_points,
-plot_points_circle
+plot_points_circle,
+plot_points_ellipse
 
 # ----------------------------------------
 ## Declare parameters
@@ -258,3 +329,19 @@ plot_points_circle(param, points, circle)
 ## - semininor axis
 ## - angle of semimajor axis & x axis
 # ----------------------------------------
+semimajor = 0.0
+semiminor = 0.0
+angle = 0.0
+ellipse = ParamVar.Ellipse(semimajor, semiminor, angle)
+
+search_circumscribed_ellipse(param, points, circle, ellipse)
+
+###CHECK###
+# set ellipse for check plot
+ellipse.semimajor = param.semimajor_distribution
+ellipse.semiminor = param.semiminor_distribution
+ellipse.angle = param.angle_distribution
+###CHECK###
+
+# Plot points & circumscribed ellipse
+plot_points_ellipse(param, points, circle, ellipse)
