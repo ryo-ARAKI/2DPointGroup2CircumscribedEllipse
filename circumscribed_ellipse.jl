@@ -52,20 +52,9 @@ end
 
 
 """
-Module for computation
+Module for rotation computation
 """
-module Compute
-using Printf
-using Distributions
-
-    """
-    Compute distance between two points
-    """
-    function compute_distance(x1, y1, z1, x2, y2, z2)
-        dist_square = (x1-x2)^2 + (y1-y2)^2 + (z1-z2)^2
-        return sqrt(dist_square)
-    end
-
+module ComputeRotation
 
     """
     Compute rotation by counter-clockwise
@@ -87,7 +76,18 @@ using Distributions
 
         return x_new, y_new
     end
+end
 
+
+"""
+Module for computation
+"""
+module Compute
+    using ..ComputeRotation:
+        compute_rotation_counterclockwise,
+        compute_rotation_clockwise
+    using Printf
+    using Distributions
 
     """
     Distribute points in rectangular region & perform rotation
@@ -273,9 +273,12 @@ end
 Module for plot
 """
 module Output
-using Printf
-using Plots
-gr()
+    using ..ComputeRotation:
+        compute_rotation_counterclockwise,
+        compute_rotation_clockwise
+    using Printf
+    using Plots
+    gr()
 
     """
     Plot points
