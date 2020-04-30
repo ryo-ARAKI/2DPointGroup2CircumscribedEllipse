@@ -14,9 +14,9 @@ module ParamVar
         angle_distribution::Float64   # Angle of points distribution
     end
 
-    mutable struct Variables
-        points_x::Array{Float64}  # x coordinate of point group
-        points_y::Array{Float64}  # y coordinate of point group
+    mutable struct Points
+        x::Array{Float64}  # x coordinate of point group
+        y::Array{Float64}  # y coordinate of point group
     end
 end
 
@@ -59,9 +59,9 @@ gr()
     """
     Plot points
     """
-    function plot_points(param, var)
+    function plot_points(param, points)
         p = scatter(
-            var.points_x, var.points_y,
+            points.x, points.y,
             markercolor = :black,
             aspect_ratio = 1,
             xlims = (-param.x_lim, param.x_lim),
@@ -110,22 +110,22 @@ param = ParamVar.Parameters(
 
 
 # ----------------------------------------
-## Declare variables
+## Declare variables & arrays
 # ----------------------------------------
-points_x = Array{Float64}(undef, param.num_points)
-points_y = Array{Float64}(undef, param.num_points)
+x = Array{Float64}(undef, param.num_points)
+y = Array{Float64}(undef, param.num_points)
 
-var = ParamVar.Variables(points_x, points_y)
+points = ParamVar.Points(x, y)
 
 
 # ----------------------------------------
 ## Define 2d point group
 # ----------------------------------------
-var.points_x, var.points_y = distribute_points(param)
+points.x, points.y = distribute_points(param)
 
 ###CHECK###
 # Plot distribution
-Output.plot_points(param, var)
+Output.plot_points(param, points)
 ###CHECK###
 
 
