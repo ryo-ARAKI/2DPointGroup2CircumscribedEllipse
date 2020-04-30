@@ -9,9 +9,14 @@ module ParamVar
     struct Parameters
         num_points::Int64  # Number of particles
         x_lim::Float64  # Boundary of square region [-x_lim, x_lim] × [-x_lim, x_lim]
-        semimajor_distribution::Float64  # Region of points distribution
-        semiminor_distribution::Float64
-        angle_distribution::Float64   # Angle of points distribution
+    end
+
+    struct Distribution
+        semimajor::Float64  # Region of points distribution
+        semiminor::Float64
+        angle_x::Float64   # Angle of points distribution
+        angle_y::Float64   # Angle of points distribution
+        angle_z::Float64   # Angle of points distribution
     end
 
     """
@@ -397,19 +402,26 @@ plot_points_circumscribed
 # ----------------------------------------
 num_points = 10
 x_lim = 1.0
-semimajor_distribution = 0.6 * x_lim
-semiminor_distribution = 0.2 * x_lim
-angle_distribution = 0.25 * π
 
 param = ParamVar.Parameters(
-    num_points, x_lim,
-    semimajor_distribution, semiminor_distribution, angle_distribution
+    num_points, x_lim
+    )
+
+
+# ----------------------------------------
+## Define 3d point group
+# ----------------------------------------
+semimajor = 0.6 * x_lim
+semiminor = 0.2 * x_lim
+angle_x = 0.2 * π
+angle_y = 0.4 * π
+angle_z = 0.6 * π
+
+distribution = ParamVar.Distribution(
+    semimajor, semiminor,
+    angle_x, angle_y, angle_z
 )
 
-
-# ----------------------------------------
-## Define 2d point group
-# ----------------------------------------
 x = Array{Float64}(undef, param.num_points)
 y = Array{Float64}(undef, param.num_points)
 points = ParamVar.Points(x, y)
