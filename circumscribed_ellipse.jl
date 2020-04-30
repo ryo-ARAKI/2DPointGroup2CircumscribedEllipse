@@ -46,6 +46,7 @@ end
 Module for computation
 """
 module Compute
+using Printf
 using Distributions
 
     """
@@ -224,7 +225,8 @@ using Distributions
             end
 
             ###CHECK###
-            println(semimajor_length, " ", semiminor_length)
+            s = @sprintf("semimajor %.3f, semiminor %.3f", semimajor_length, semiminor_length)
+            println(s)
             ###CHECK###
 
         end
@@ -240,6 +242,7 @@ end
 Module for plot
 """
 module Output
+using Printf
 using Plots
 gr()
 
@@ -295,6 +298,9 @@ gr()
     Plot points, circumscribed circle & circumscribed ellipse
     """
     function plot_points_circumscribed(param, points, circle, ellipse)
+        s = @sprintf("ellipse's semimajor axis %.3f, semiminor axis %.3f & angle %.3f", ellipse.semimajor, ellipse.semiminor, ellipse.angle)
+        println(s)
+
         p = scatter(
             points.x, points.y,
             markercolor = :black,
