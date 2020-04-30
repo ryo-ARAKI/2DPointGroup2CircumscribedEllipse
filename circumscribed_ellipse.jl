@@ -44,7 +44,9 @@ module ParamVar
     mutable struct Ellipse
         semimajor::Float64
         semiminor::Float64
-        angle::Float64
+        angle_x::Float64
+        angle_y::Float64
+        angle_z::Float64
     end
 end
 
@@ -474,8 +476,13 @@ search_circumscribed_circle(param, points, circle)
 # ----------------------------------------
 semimajor = 0.0
 semiminor = 0.0
-angle = 0.0
-ellipse = ParamVar.Ellipse(semimajor, semiminor, angle)
+angle_x = 0.0
+angle_y = 0.0
+angle_z = 0.0
+ellipse = ParamVar.Ellipse(
+    semimajor, semiminor,
+    angle_x, angle_y, angle_z
+)
 
 search_circumscribed_ellipse(param, points, circle, ellipse)
 
