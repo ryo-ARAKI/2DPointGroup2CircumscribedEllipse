@@ -267,42 +267,9 @@ gr()
 
 
     """
-    Plot points & circumscribed circle
-    """
-    function plot_points_circle(param, points, circle)
-        p = scatter(
-            points.x, points.y,
-            markercolor = :black,
-            aspect_ratio = 1,
-            xlims = (-param.x_lim, param.x_lim),
-            ylims = (-param.x_lim, param.x_lim),
-            axis = nothing,
-            size=(640, 640)
-        )
-        p! = scatter!(
-            [circle.centre_x], [circle.centre_y],
-            markercolor = :red
-        )
-        p! = plot!(
-            circle_shape(circle.centre_x, circle.centre_y, circle.radius),
-            seriestype = [:shape,],
-            lw = 0.5,
-            c = :blue,
-            linecolor = :black,
-            legend = false,
-            fillalpha =0.2,
-            aspect_ratio = 1,
-            title = "circumscribed circle"
-        )
-
-        savefig(p!, "./tmp/circumscribed_circle.png")
-    end
-
-
-    """
     Define ellipse shape
     1. Circle of radius=1: x^2+y^2=1
-    2. Adjust semimajor/minor axis: x^2 -> x^2/a^2, y^2 -> y^2/b^2
+    2. Adjust semimajor/minor axis: x -> ax, y -> by
     3. Rotation by angle
     """
     function ellipse_shape(centre_x, centre_y, semimajor, semiminor, angle)
@@ -317,9 +284,9 @@ gr()
 
 
     """
-    Plot points & circumscribed ellipse
+    Plot points, circumscribed circle & circumscribed ellipse
     """
-    function plot_points_ellipse(param, points, circle, ellipse)
+    function plot_points_circumscribed(param, points, circle, ellipse)
         p = scatter(
             points.x, points.y,
             markercolor = :black,
@@ -327,11 +294,22 @@ gr()
             xlims = (-param.x_lim, param.x_lim),
             ylims = (-param.x_lim, param.x_lim),
             axis = nothing,
-            size=(640, 640)
+            size=(640, 640),
+            title="Point group & its circumscribe"
         )
         p! = scatter!(
             [circle.centre_x], [circle.centre_y],
             markercolor = :red
+        )
+        p! = plot!(
+            circle_shape(circle.centre_x, circle.centre_y, circle.radius),
+            seriestype = [:shape,],
+            lw = 0.5,
+            c = :blue,
+            linecolor = :black,
+            legend = false,
+            fillalpha =0.2,
+            aspect_ratio = 1
         )
         p! = plot!(
             ellipse_shape(
@@ -343,11 +321,10 @@ gr()
             linecolor = :black,
             legend = false,
             fillalpha =0.2,
-            aspect_ratio = 1,
-            title = "circumscribed ellipse"
+            aspect_ratio = 1
         )
 
-        savefig(p!, "./tmp/circumscribed_ellipse.png")
+        savefig(p!, "./tmp/circumscribed.png")
     end
 end
 
@@ -370,8 +347,7 @@ search_circumscribed_circle,
 search_circumscribed_ellipse
 using .Output:
 plot_points,
-plot_points_circle,
-plot_points_ellipse
+plot_points_circumscribed
 
 
 # ----------------------------------------
@@ -400,7 +376,7 @@ distribute_points(param, points)
 
 ###CHECK###
 # Plot distribution
-# plot_points(param, points)
+plot_points(param, points)
 ###CHECK###
 
 
@@ -415,11 +391,6 @@ radius = 0.0
 circle = ParamVar.Circle(centre_x, centre_y, radius)
 
 search_circumscribed_circle(param, points, circle)
-
-###CHECK###
-# Plot distribution
-plot_points_circle(param, points, circle)
-###CHECK###
 
 
 # ----------------------------------------
@@ -437,11 +408,11 @@ ellipse = ParamVar.Ellipse(semimajor, semiminor, angle)
 search_circumscribed_ellipse(param, points, circle, ellipse)
 
 ###CHECK###
-# set ellipse for check plot
-ellipse.semimajor = param.semimajor_distribution
-ellipse.semiminor = param.semiminor_distribution
-ellipse.angle = param.angle_distribution
+# # set ellipse for check plot
+# ellipse.semimajor = param.semimajor_distribution
+# ellipse.semiminor = param.semiminor_distribution
+# ellipse.angle = param.angle_distribution
 ###CHECK###
 
-# Plot points & circumscribed ellipse
-plot_points_ellipse(param, points, circle, ellipse)
+# Plot points, circumscribed circle & circumscribed ellipse
+plot_points_circumscribed(param, points, circle, ellipse)
