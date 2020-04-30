@@ -179,9 +179,9 @@ module Compute
 
     """
     Find circumscribed ellipse of given point group based on circumscribed circle
-    1. Find the most distant point
-    2. Define semimajor axis length & angle as origin <-> the most distant point
-    3. Shift by the centre coordinate
+    1. Shift by the centre coordinate
+    2. Find the most distant point
+    3. Define semimajor axis length & angle as origin <-> the most distant point
     4. Apply inverse rotation of point group by semimajor axis angle
     5. Adjust semimajor axis: x -> x/a
     -----iteration for semiminor axis length (originally circle radius)
@@ -192,37 +192,38 @@ module Compute
     -----end iteration for semiminor axis
     """
     function search_circumscribed_ellipse(param, points, circle, ellipse)
-        # 1. Find the most distant point
+        # 1. Shift by the centre coordinate
+        x_shift = points.x .- circle.centre_x
+        y_shift = points.y .- circle.centre_y
+        z_shift = points.z .- circle.centre_z
+
+        # 2. Find the most distant point
         dist_max = 0.0
         distant_x = 0.0
         distant_y = 0.0
         distant_z = 0.0
         for itr_point = 1:param.num_points
             dist = compute_distance(
-                circle.centre_x, circle.centre_y, circle.centre_z,
-                points.x[itr_point], points.y[itr_point], points.z[itr_point]
+                0.0, 0.0, 0.0,
+                x_shift[itr_point], y_shift[itr_point], z_shift[itr_point]
             )
             if dist > dist_max
                 dist_max = dist
-                distant_x = points.x[itr_point]
-                distant_y = points.y[itr_point]
-                distant_z = points.z[itr_point]
+                distant_x = x_shift[itr_point]
+                distant_y = y_shift[itr_point]
+                distant_z = z_shift[itr_point]
             end
         end
 
-        # 2. Define semimajor axis length & angle
+        # 3. Define semimajor axis length & angle
         semimajor_length = compute_distance(
-            circle.centre_x, circle.centre_y, circle.centre_z,
+            0.0, 0.0, 0.0,
             distant_x, distant_y, distant_z
         )
-        semimajor_angle_x = atan(distant_z - circle.centre_z, distant_y - circle.centre_y)
-        semimajor_angle_y = atan(distant_z - circle.centre_z, distant_x - circle.centre_x)
-        semimajor_angle_z = atan(distant_y - circle.centre_y, distant_x - circle.centre_x)
+        semimajor_angle_x = atan(distant_z, distant_y)  # Along x axis
+        semimajor_angle_y = atan(distant_z, distant_x)  # Along y axis
+        semimajor_angle_z = atan(distant_y, distant_x)  # Along z axis
 
-        # 3. Shift by the centre coordinate
-        x_shift = points.x .- circle.centre_x
-        y_shift = points.y .- circle.centre_y
-        z_shift = points.z .- circle.centre_z
 
         # 4. Apply inverse rotation of point group by semimajor axis angle
         y_z, z_y = compute_rotation_clockwise(y_shift, z_shift, semimajor_angle_x)  # Along x axis
