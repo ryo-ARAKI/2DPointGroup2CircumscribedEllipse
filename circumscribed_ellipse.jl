@@ -34,6 +34,7 @@ module ParamVar
     mutable struct Circle
         centre_x::Float64
         centre_y::Float64
+        centre_z::Float64
         radius::Float64
     end
 
@@ -58,8 +59,8 @@ using Distributions
     """
     Compute distance between two points
     """
-    function compute_distance(x1, y1, x2, y2)
-        dist_square = (x1-x2)^2 + (y1-y2)^2
+    function compute_distance(x1, y1, z1, x2, y2, z2)
+        dist_square = (x1-x2)^2 + (y1-y2)^2 + (z1-z2)^2
         return sqrt(dist_square)
     end
 
@@ -121,6 +122,7 @@ using Distributions
         # Initial guess = corner of region
         centre_x = -param.x_lim
         centre_y = -param.x_lim
+        centre_z = -param.x_lim
 
         # Ratio of movement/distance to the most far point
         num_move = param.num_points
@@ -133,21 +135,24 @@ using Distributions
                 dist_max = 0.0
                 object_x = 0.0
                 object_y = 0.0
+                object_z = 0.0
                 for itr_point = 1:param.num_points
                     dist = compute_distance(
-                        centre_x, centre_y,
-                        points.x[itr_point], points.y[itr_point]
+                        centre_x, centre_y, centre_z,
+                        points.x[itr_point], points.y[itr_point], points.z[itr_point]
                     )
                     if dist > dist_max
                         dist_max = dist
                         object_x = points.x[itr_point]
                         object_y = points.y[itr_point]
+                        object_z = points.z[itr_point]
                     end
                 end
 
                 # Move towards the most far point
                 centre_x += move * (object_x - centre_x)
                 centre_y += move * (object_y - centre_y)
+                centre_z += move * (object_z - centre_z)
             end
 
             # Dicrease move ratio
@@ -156,6 +161,7 @@ using Distributions
 
         circle.centre_x = centre_x
         circle.centre_y = centre_y
+        circle.centre_z = centre_z
         circle.radius = dist_max
     end
 
@@ -452,8 +458,9 @@ plot_points(param, points)
 # ----------------------------------------
 centre_x = 0.0
 centre_y = 0.0
+centre_z = 0.0
 radius = 0.0
-circle = ParamVar.Circle(centre_x, centre_y, radius)
+circle = ParamVar.Circle(centre_x, centre_y, centre_z, radius)
 
 search_circumscribed_circle(param, points, circle)
 
