@@ -148,9 +148,85 @@ using Distributions
 
     """
     Find circumscribed ellipse of given point group based on circumscribed circle
+    1. Find the most distant point
+    2. Define semimajor axis length & angle as origin <-> the most distant point
+    3. Apply inverse rotation of point group by semimajor axis angle
+    4. Adjust semimajor axis: x -> x/a
+    -----iteration for semiminor axis length (originally circle radius)
+    5. Adjust semiminor axis: y -> y/b
+    6. Confirm all points are included in the standard circle of radius=1
+        If so, decrease the semiminor axis length by delta
+        If not, exit the loop & define the semiminor axis length
+    -----end iteration for semiminor axis
     """
     function search_circumscribed_ellipse(param, points, circle, ellipse)
+        # 1. Find the most distant point
+        dist_max = 0.0
+        distant_x = 0.0
+        distant_y = 0.0
+        for itr_point = 1:param.num_points
+            dist = compute_distance(
+                circle.centre_x, circle.centre_y,
+                points.x[itr_point], points.y[itr_point]
+            )
+            if dist > dist_max
+                dist_max = dist
+                distant_x = points.x[itr_point]
+                distant_y = points.y[itr_point]
+            end
+        end
 
+        # 2. Define semimajor axis length & angle
+        semimajor_length = compute_distance(
+            circle.centre_x, circle.centre_y,
+            distant_x, distant_y
+        )
+        semimajor_angle = atan(distant_y, distant_x)
+
+        # 3. Apply inverse rotation of point group by semimajor axis angle
+        x_rot, y_rot = compute_rotation_clockwise(points.x, points.y, semimajor_angle)
+
+        # 4. Adjust semimajor axis: x -> x/a
+        x_std = x_rot / semimajor_length
+
+        # parameter setting for while-loop
+        semiminor_length = circle.radius
+        flag_all_points_in_circle = true
+        delta = 0.01
+
+        while flag_all_points_in_circle
+
+            # 5. Adjust semiminor axis: y -> y/b
+            y_std = y_rot / semiminor_length
+
+            # 6. Confirm all points are included in the circle
+            for itr_point in 1:param.num_points
+                dist = compute_distance(
+                    circle.centre_x, circle.centre_x,
+                    x_std[itr_point], y_std[itr_point]
+                )
+
+                # 6-2. If not, set flag to exit the loop
+                if dist > 1
+                    flag_all_points_in_circle = false
+                    break
+                end
+            end
+
+            # 6-1. If so, decrease the semiminor axis length
+            if flag_all_points_in_circle
+                semiminor_length -= delta
+            end
+
+            ###CHECK###
+            println(semimajor_length, " ", semiminor_length)
+            ###CHECK###
+
+        end
+
+        ellipse.semimajor = semimajor_length
+        ellipse.semiminor = semiminor_length
+        ellipse.angle = semimajor_angle
     end
 end
 
