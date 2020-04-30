@@ -42,7 +42,7 @@ using Distributions
     """
     Distribute points in rectangular region & perform rotation
     """
-    function distribute_points(param)
+    function distribute_points(param, points)
         # Distribute points in rectangular region
         x = rand(
             Uniform(-param.semimajor_distribution, param.semimajor_distribution),
@@ -55,7 +55,8 @@ using Distributions
         x_rot = x .* cos(param.angle_distribution) - y .* sin(param.angle_distribution)
         y_rot = x .* sin(param.angle_distribution) + y .* cos(param.angle_distribution)
 
-        return x_rot, y_rot
+        points.x = x_rot
+        points.y = y_rot
     end
 
     """
@@ -70,7 +71,7 @@ using Distributions
     """
     Find centre of circumscribed circle of given point group
     """
-    function search_circumscribed_circle(param, points)
+    function search_circumscribed_circle(param, points, circle)
         # Initial guess = corner of region
         centre_x = -param.x_lim
         centre_y = -param.x_lim
@@ -107,7 +108,9 @@ using Distributions
             move *= 0.5
         end
 
-        return centre_x, centre_y, dist_max
+        circle.centre_x = centre_x
+        circle.centre_y = centre_y
+        circle.radius = dist_max
     end
 end
 
@@ -221,11 +224,11 @@ x = Array{Float64}(undef, param.num_points)
 y = Array{Float64}(undef, param.num_points)
 points = ParamVar.Points(x, y)
 
-points.x, points.y = distribute_points(param)
+distribute_points(param, points)
 
 ###CHECK###
 # Plot distribution
-plot_points(param, points)
+# plot_points(param, points)
 ###CHECK###
 
 
@@ -239,7 +242,7 @@ centre_y = 0.0
 radius = 0.0
 circle = ParamVar.Circle(centre_x, centre_y, radius)
 
-circle.centre_x, circle.centre_y, circle.radius = search_circumscribed_circle(param, points)
+search_circumscribed_circle(param, points, circle)
 
 ###CHECK###
 # Plot distribution
