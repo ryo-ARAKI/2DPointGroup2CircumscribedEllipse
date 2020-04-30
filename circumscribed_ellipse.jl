@@ -295,12 +295,23 @@ gr()
 
 
     """
+    Define line shape
+    """
+    function line_shape(param, fixed_x, fixed_y, angle)
+        x = -param.x_lim:0.01:param.x_lim
+        intercept = fixed_y - fixed_x * tan(angle)
+        x, tan(angle) .* x .+ intercept
+    end
+
+
+    """
     Plot points, circumscribed circle & circumscribed ellipse
     """
     function plot_points_circumscribed(param, points, circle, ellipse)
         s = @sprintf("ellipse's semimajor axis %.3f, semiminor axis %.3f & angle %.3f", ellipse.semimajor, ellipse.semiminor, ellipse.angle)
         println(s)
 
+        # Point group
         p = scatter(
             points.x, points.y,
             markercolor = :black,
@@ -311,10 +322,14 @@ gr()
             size=(640, 640),
             title="Point group & its circumscribe"
         )
+
+        # Centre of circle/ellipse
         p! = scatter!(
             [circle.centre_x], [circle.centre_y],
             markercolor = :red
         )
+
+        # Circumscribed circle
         p! = plot!(
             circle_shape(circle.centre_x, circle.centre_y, circle.radius),
             seriestype = [:shape,],
@@ -325,6 +340,8 @@ gr()
             fillalpha =0.2,
             aspect_ratio = 1
         )
+
+        # Circumscribed ellipse
         p! = plot!(
             ellipse_shape(
                 circle.centre_x, circle.centre_y,  # Centre is same as circle
@@ -336,6 +353,17 @@ gr()
             legend = false,
             fillalpha =0.2,
             aspect_ratio = 1
+        )
+
+        # Semimajor axis of circumscribed ellipse
+        p! = plot!(
+            line_shape(
+                param,
+                circle.centre_x, circle.centre_y, ellipse.angle
+            ),
+            lw = 2.0,
+            linecolor = :red,
+            legend = false
         )
 
         savefig(p!, "./tmp/circumscribed.png")
