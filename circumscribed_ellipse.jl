@@ -480,6 +480,51 @@ module Output
 
         savefig(p!, "./tmp/circumscribed.png")
     end
+
+
+    """
+    Output points, circumscribed circle & circumscribed ellipse in dat file
+    """
+    function out_points_circumscribed(param, points, circle, ellipse)
+
+        # Points information
+        pointsfile = open("./tmp/points.dat","w")
+        for itr_point = 1:param.num_points
+            write(pointsfile, "$(points.x[itr_point])\t$(points.z[itr_point])\t$(points.z[itr_point])\n")
+        end
+        close(pointsfile)
+
+        # Sphere information
+        sphere = sphere_shape(
+            circle.centre_x, circle.centre_y, circle.centre_z,
+            circle.radius
+        )
+        dims_sphere = size.(sphere)
+        lens_sphere = length.(sphere)
+
+        spherefile = open("./tmp/sphere.dat","w")
+        for itr_point = 1:lens_sphere[1]
+            write(spherefile, "$(sphere[1][itr_point])\t$(sphere[2][itr_point])\t$(sphere[3][itr_point])\n")
+        end
+        close(spherefile)
+
+        # Spheroid information
+        spheroid = spheroid_shape(
+            circle.centre_x, circle.centre_y, circle.centre_z,
+            circle.radius,
+            ellipse.semimajor, ellipse.semiminor,
+            ellipse.angle_x, ellipse.angle_y, ellipse.angle_z
+        )
+        dims_spheroid = size.(spheroid)
+        lens_spheroid = length.(spheroid)
+
+        spheroidfile = open("./tmp/spheroid.dat","w")
+        for itr_point = 1:lens_spheroid[1]
+            write(spheroidfile, "$(spheroid[1][itr_point])\t$(spheroid[2][itr_point])\t$(spheroid[3][itr_point])\n")
+        end
+        close(spheroidfile)
+
+    end
 end
 
 
@@ -582,5 +627,11 @@ search_circumscribed_ellipse(param, points, circle, ellipse)
 # ellipse.angle = param.angle_distribution
 ###CHECK###
 
+"""
+# Plot result in 2D
 # Plot points, circumscribed circle & circumscribed ellipse
 plot_points_circumscribed(param, points, circle, ellipse)
+"""
+
+# Output result
+out_points_circumscribed(param, points, circle, ellipse)
