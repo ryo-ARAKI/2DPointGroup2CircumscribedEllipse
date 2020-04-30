@@ -25,6 +25,7 @@ module ParamVar
     mutable struct Points
         x::Array{Float64}  # x coordinate
         y::Array{Float64}  # y coordinate
+        z::Array{Float64}  # z coordinate
     end
 
     """
@@ -88,20 +89,27 @@ using Distributions
     """
     Distribute points in rectangular region & perform rotation
     """
-    function distribute_points(param, points)
+    function distribute_points(param, dist, points)
         # Distribute points in rectangular region
+        # x has semimajor, y & z have semiminor axis
         x = rand(
-            Uniform(-param.semimajor_distribution, param.semimajor_distribution),
+            Uniform(-dist.semimajor, dist.semimajor),
             param.num_points)
         y = rand(
-            Uniform(-param.semiminor_distribution, param.semiminor_distribution),
+            Uniform(-dist.semiminor, dist.semiminor),
+            param.num_points)
+        z = rand(
+            Uniform(-dist.semiminor, dist.semiminor),
             param.num_points)
 
         # Rotate rectangular region
-        x_rot, y_rot = compute_rotation_counterclockwise(x, y, param.angle_distribution)
+        x_z, y_z = compute_rotation_counterclockwise(x, y, dist.angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z, dist.angle_y)  # Along y axis
+        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, dist.angle_x)  # Along x axis
 
-        points.x = x_rot
-        points.y = y_rot
+        points.x = x_yz
+        points.y = y_xz
+        points.z = z_xy
     end
 
 
@@ -413,20 +421,21 @@ param = ParamVar.Parameters(
 # ----------------------------------------
 semimajor = 0.6 * x_lim
 semiminor = 0.2 * x_lim
-angle_x = 0.2 * π
-angle_y = 0.4 * π
-angle_z = 0.6 * π
+angle_x = 0.2 * π  # Rotation along x axis
+angle_y = 0.4 * π  # y axis
+angle_z = 0.6 * π  # z axis
 
-distribution = ParamVar.Distribution(
+dist = ParamVar.Distribution(
     semimajor, semiminor,
     angle_x, angle_y, angle_z
 )
 
 x = Array{Float64}(undef, param.num_points)
 y = Array{Float64}(undef, param.num_points)
-points = ParamVar.Points(x, y)
+z = Array{Float64}(undef, param.num_points)
+points = ParamVar.Points(x, y, z)
 
-distribute_points(param, points)
+distribute_points(param, dist, points)
 
 ###CHECK###
 # Plot distribution
