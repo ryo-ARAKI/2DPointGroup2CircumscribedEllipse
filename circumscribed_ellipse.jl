@@ -110,7 +110,7 @@ using Distributions
         centre_y = -param.x_lim
 
         # Ratio of movement/distance to the most far point
-        num_move = 100
+        num_move = param.num_points
         move = 0.5 * param.x_lim
         dist_max = 0.0
 
@@ -397,8 +397,8 @@ plot_points_circumscribed
 # ----------------------------------------
 num_points = 10
 x_lim = 1.0
-semimajor_distribution = 0.5 * x_lim
-semiminor_distribution = 0.3 * x_lim
+semimajor_distribution = 0.6 * x_lim
+semiminor_distribution = 0.2 * x_lim
 angle_distribution = 0.25 * π
 
 param = ParamVar.Parameters(
@@ -418,7 +418,7 @@ distribute_points(param, points)
 
 ###CHECK###
 # Plot distribution
-plot_points(param, points)
+# plot_points(param, points)
 ###CHECK###
 
 
