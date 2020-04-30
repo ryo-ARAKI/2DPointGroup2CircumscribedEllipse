@@ -187,34 +187,41 @@ using Distributions
         dist_max = 0.0
         distant_x = 0.0
         distant_y = 0.0
+        distant_z = 0.0
         for itr_point = 1:param.num_points
             dist = compute_distance(
-                circle.centre_x, circle.centre_y,
-                points.x[itr_point], points.y[itr_point]
+                circle.centre_x, circle.centre_y, circle.centre_z,
+                points.x[itr_point], points.y[itr_point], points.z[itr_point]
             )
             if dist > dist_max
                 dist_max = dist
                 distant_x = points.x[itr_point]
                 distant_y = points.y[itr_point]
+                distant_z = points.z[itr_point]
             end
         end
 
         # 2. Define semimajor axis length & angle
         semimajor_length = compute_distance(
-            circle.centre_x, circle.centre_y,
-            distant_x, distant_y
+            circle.centre_x, circle.centre_y, circle.centre_z,
+            distant_x, distant_y, distant_z
         )
-        semimajor_angle = atan(distant_y - circle.centre_y, distant_x - circle.centre_x)
+        semimajor_angle_x = atan(distant_z - circle.centre_z, distant_y - circle.centre_y)
+        semimajor_angle_y = atan(distant_z - circle.centre_z, distant_x - circle.centre_x)
+        semimajor_angle_z = atan(distant_y - circle.centre_y, distant_x - circle.centre_x)
 
         # 3. Shift by the centre coordinate
         x_shift = points.x .- circle.centre_x
         y_shift = points.y .- circle.centre_y
+        z_shift = points.z .- circle.centre_z
 
         # 4. Apply inverse rotation of point group by semimajor axis angle
-        x_rot, y_rot = compute_rotation_clockwise(x_shift, y_shift, semimajor_angle)
+        y_z, z_y = compute_rotation_clockwise(y_shift, z_shift, semimajor_angle_x)  # Along x axis
+        x_z, z = compute_rotation_clockwise(x_shift, z_y, semimajor_angle_y)  # Along y axis
+        x, y = compute_rotation_clockwise(x_z, y_z, semimajor_angle_z)  # Along z axis
 
         # 5. Adjust semimajor axis: x -> x/a
-        x_std = x_rot / semimajor_length
+        x_std = x / semimajor_length
 
         # parameter setting for while-loop
         semiminor_length = circle.radius
@@ -223,14 +230,15 @@ using Distributions
 
         while flag_all_points_in_circle
 
-            # 6. Adjust semiminor axis: y -> y/b
-            y_std = y_rot / semiminor_length
+            # 6. Adjust semiminor axis: y -> y/b & z -> z/b
+            y_std = y / semiminor_length
+            z_std = z / semiminor_length
 
             # 7. Confirm all points are included in the circle
             for itr_point in 1:param.num_points
                 dist = compute_distance(
-                    0.0, 0.0,
-                    x_std[itr_point], y_std[itr_point]
+                    0.0, 0.0, 0.0,
+                    x_std[itr_point], y_std[itr_point], z_std[itr_point]
                 )
 
                 # 6-2. If not, set flag to exit the loop
@@ -254,7 +262,9 @@ using Distributions
 
         ellipse.semimajor = semimajor_length
         ellipse.semiminor = semiminor_length
-        ellipse.angle = semimajor_angle
+        ellipse.angle_x = semimajor_angle_x
+        ellipse.angle_y = semimajor_angle_y
+        ellipse.angle_z = semimajor_angle_z
     end
 end
 
@@ -449,7 +459,7 @@ distribute_points(param, dist, points)
 
 ###CHECK###
 # Plot distribution
-plot_points(param, points)
+# plot_points(param, points)
 ###CHECK###
 
 
