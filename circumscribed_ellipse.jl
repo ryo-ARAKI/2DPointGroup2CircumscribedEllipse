@@ -183,7 +183,7 @@ using Distributions
             circle.centre_x, circle.centre_y,
             distant_x, distant_y
         )
-        semimajor_angle = atan(distant_y, distant_x)
+        semimajor_angle = atan(distant_y - circle.centre_y, distant_x - circle.centre_x)
 
         # 3. Shift by the centre coordinate
         x_shift = points.x .- circle.centre_x
