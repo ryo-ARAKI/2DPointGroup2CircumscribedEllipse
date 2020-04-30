@@ -263,12 +263,14 @@ gr()
     Plot points
     """
     function plot_points(param, points)
-        p = scatter(
-            points.x, points.y,
+        p = plot(
+            points.x, points.y, points.z,
+            seriestype=:scatter,
             markercolor = :black,
             aspect_ratio = 1,
             xlims = (-param.x_lim, param.x_lim),
             ylims = (-param.x_lim, param.x_lim),
+            zlims = (-param.x_lim, param.x_lim),
             axis = nothing,
             size=(640, 640),
             title = "Distributed points"
@@ -439,7 +441,7 @@ distribute_points(param, dist, points)
 
 ###CHECK###
 # Plot distribution
-# plot_points(param, points)
+plot_points(param, points)
 ###CHECK###
 
 
