@@ -108,13 +108,13 @@ module Compute
         # Distribute points in rectangular region
         # x has semimajor, y & z have semiminor axis
         x = rand(
-            Uniform(-dist.semimajor, dist.semimajor),
+            Normal(0.0, dist.semimajor),
             param.num_points)
         y = rand(
-            Uniform(-dist.semiminor, dist.semiminor),
+            Normal(0.0, dist.semiminor),
             param.num_points)
         z = rand(
-            Uniform(-dist.semiminor, dist.semiminor),
+            Normal(0.0, dist.semiminor),
             param.num_points)
 
         # Rotate rectangular region
