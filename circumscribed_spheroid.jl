@@ -83,6 +83,117 @@ end
 
 
 """
+Module for define various shapes
+"""
+module DefineShape
+    using ..ComputeRotation:
+        compute_rotation_counterclockwise,
+        compute_rotation_clockwise
+
+    """
+    Define circle shape
+    """
+    function circle_shape(centre_x, centre_y, radius)
+        θ = LinRange(0, 2*π, 100)
+        centre_x .+ radius*sin.(θ), centre_y .+ radius*cos.(θ)
+    end
+
+
+    """
+    Define ellipse shape
+    1. Circle of radius=1: x^2+y^2=1
+    2. Adjust semimajor/minor axis: x -> ax, y -> by
+    3. Rotation by angle
+    4. Shift the centre of ellipse
+    """
+    function ellipse_shape(centre_x, centre_y, semimajor, semiminor, angle)
+        θ = LinRange(0, 2*π, 100)
+        # 2
+        x_tmp = semimajor * sin.(θ)
+        y_tmp = semiminor * cos.(θ)
+        # 3
+        x_rot, y_rot = compute_rotation_counterclockwise(x_tmp, y_tmp, angle)
+        # 4
+        x_rot .+ centre_x, y_rot .+ centre_y
+    end
+
+
+    """
+    Define sphere shape
+    1. Sphere of radius=1: x^2+y^2+z^2=1
+    2. Multiply radius
+    2. Shift the centre of shpere
+    """
+    function sphere_shape(circle)
+        #1
+        x_tmp, y_tmp, z_tmp = compute_sphere()
+
+        # 2
+        x_tmp *= circle.radius
+        y_tmp *= circle.radius
+        z_tmp *= circle.radius
+
+        # 3
+        circle.centre_x .+ x_tmp, circle.centre_y .+ y_tmp, circle.centre_z .+ z_tmp
+    end
+
+
+    """
+    Compute standard sphere
+    Origin = zero, radius=1
+    """
+    function compute_sphere()
+        dim = 30
+        θ = range(0, stop=π, length=dim)
+        ϕ = range(0, stop=2*π, length=dim)
+
+        x_tmp = sin.(θ) * cos.(ϕ)'
+        y_tmp = sin.(θ) * sin.(ϕ)'
+        z_tmp = cos.(θ) * ones(dim)'
+
+        return x_tmp, y_tmp, z_tmp
+    end
+
+
+    """
+    Define spheroid shape
+    1. Sphere of radius=1: x^2+y^2+z^2=1
+    2. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
+    3. Rotation by angle
+    4. Shift the centre of ellipse
+    """
+    function spheroid_shape(circle, ellipse)
+        # 1
+        x_tmp, y_tmp, z_tmp = compute_sphere()
+
+        # 2
+        x_tmp *= ellipse.semimajor
+        y_tmp *= ellipse.semiminor
+        z_tmp *= ellipse.semiminor
+
+        # 3
+        x_z, y_z = compute_rotation_counterclockwise(x_tmp, y_tmp, ellipse.angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z_tmp, ellipse.angle_y)  # Along y axis
+        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, ellipse.angle_x)  # Along x axis
+
+        # 4
+        circle.centre_x .+ x_yz, circle.centre_y .+ y_xz, circle.centre_z .+ z_xy
+
+    end
+
+
+    """
+    Define line shape
+    """
+    function line_shape(param, fixed_x, fixed_y, angle)
+        x = -param.x_lim:0.01:param.x_lim
+        intercept = fixed_y - fixed_x * tan(angle)
+        x, tan(angle) .* x .+ intercept
+    end
+end
+
+
+"""
 Module for computation
 """
 module Compute
@@ -291,9 +402,14 @@ end
 Module for plot
 """
 module Output
-    using ..ComputeRotation:
-        compute_rotation_counterclockwise,
-        compute_rotation_clockwise
+    using ..DefineShape:
+        sphere_shape,
+        circle_shape,
+        ellipse_shape,
+        sphere_shape,
+        spheroid_shape,
+        compute_sphere,
+        line_shape
     using Printf
     using Plots
     gr()
@@ -316,108 +432,6 @@ module Output
         )
 
         savefig(p, "./tmp/distributed_points.png")
-    end
-
-
-    """
-    Define circle shape
-    """
-    function circle_shape(centre_x, centre_y, radius)
-        θ = LinRange(0, 2*π, 100)
-        centre_x .+ radius*sin.(θ), centre_y .+ radius*cos.(θ)
-    end
-
-
-    """
-    Define ellipse shape
-    1. Circle of radius=1: x^2+y^2=1
-    2. Adjust semimajor/minor axis: x -> ax, y -> by
-    3. Rotation by angle
-    4. Shift the centre of ellipse
-    """
-    function ellipse_shape(centre_x, centre_y, semimajor, semiminor, angle)
-        θ = LinRange(0, 2*π, 100)
-        # 2
-        x_tmp = semimajor * sin.(θ)
-        y_tmp = semiminor * cos.(θ)
-        # 3
-        x_rot, y_rot = compute_rotation_counterclockwise(x_tmp, y_tmp, angle)
-        # 4
-        x_rot .+ centre_x, y_rot .+ centre_y
-    end
-
-
-    """
-    Compute standard sphere
-    Origin = zero, radius=1
-    """
-    function compute_sphere()
-        dim = 30
-        θ = range(0, stop=π, length=dim)
-        ϕ = range(0, stop=2*π, length=dim)
-
-        x_tmp = sin.(θ) * cos.(ϕ)'
-        y_tmp = sin.(θ) * sin.(ϕ)'
-        z_tmp = cos.(θ) * ones(dim)'
-
-        return x_tmp, y_tmp, z_tmp
-    end
-
-
-    """
-    Define sphere shape
-    1. Sphere of radius=1: x^2+y^2+z^2=1
-    2. Multiply radius
-    2. Shift the centre of shpere
-    """
-    function sphere_shape(circle)
-        #1
-        x_tmp, y_tmp, z_tmp = compute_sphere()
-
-        # 2
-        x_tmp *= circle.radius
-        y_tmp *= circle.radius
-        z_tmp *= circle.radius
-
-        # 3
-        circle.centre_x .+ x_tmp, circle.centre_y .+ y_tmp, circle.centre_z .+ z_tmp
-    end
-
-
-    """
-    Define spheroid shape
-    1. Sphere of radius=1: x^2+y^2+z^2=1
-    2. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
-    3. Rotation by angle
-    4. Shift the centre of ellipse
-    """
-    function spheroid_shape(circle, ellipse)
-        # 1
-        x_tmp, y_tmp, z_tmp = compute_sphere()
-
-        # 2
-        x_tmp *= ellipse.semimajor
-        y_tmp *= ellipse.semiminor
-        z_tmp *= ellipse.semiminor
-
-        # 3
-        x_z, y_z = compute_rotation_counterclockwise(x_tmp, y_tmp, ellipse.angle_z)  # Along z axis
-        x_yz, z_y = compute_rotation_counterclockwise(x_z, z_tmp, ellipse.angle_y)  # Along y axis
-        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, ellipse.angle_x)  # Along x axis
-
-        # 4
-        circle.centre_x .+ x_yz, circle.centre_y .+ y_xz, circle.centre_z .+ z_xy
-
-    end
-
-
-    """
-    Define line shape
-    """
-    function line_shape(param, fixed_x, fixed_y, angle)
-        x = -param.x_lim:0.01:param.x_lim
-        intercept = fixed_y - fixed_x * tan(angle)
-        x, tan(angle) .* x .+ intercept
     end
 
 
