@@ -557,7 +557,10 @@ module Output
 
         spherefile = open("./tmp/sphere.dat","w")
         for itr_point = 1:lens_sphere[1]
-            write(spherefile, "$(sphere_surface[1][itr_point])\t$(sphere_surface[2][itr_point])\t$(sphere_surface[3][itr_point])\n")
+            write(
+                spherefile,
+                "$(sphere_surface[1][itr_point])\t$(sphere_surface[2][itr_point])\t$(sphere_surface[3][itr_point])\n"
+            )
         end
         close(spherefile)
 
@@ -568,7 +571,10 @@ module Output
 
         spheroidfile = open("./tmp/spheroid.dat","w")
         for itr_point = 1:lens_spheroid[1]
-            write(spheroidfile, "$(spheroid_surface[1][itr_point])\t$(spheroid_surface[2][itr_point])\t$(spheroid_surface[3][itr_point])\n")
+            write(
+                spheroidfile,
+                "$(spheroid_surface[1][itr_point])\t$(spheroid_surface[2][itr_point])\t$(spheroid_surface[3][itr_point])\n"
+            )
         end
         close(spheroidfile)
 
@@ -578,7 +584,10 @@ module Output
 
         semimajor_linefile = open("./tmp/semimajor.dat","w")
         for itr_point = 1:lens_semimajor[1]
-            write(semimajor_linefile, "$(semimajor_line[1][itr_point])\t$(semimajor_line[2][itr_point])\t$(semimajor_line[3][itr_point])\n")
+            write(
+                semimajor_linefile,
+                "$(semimajor_line[1][itr_point])\t$(semimajor_line[2][itr_point])\t$(semimajor_line[3][itr_point])\n"
+            )
         end
         close(semimajor_linefile)
 
