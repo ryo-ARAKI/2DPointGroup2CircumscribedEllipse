@@ -71,13 +71,8 @@ module ComputeRotation
 
 
     """
-    Compute rotation by clockwise
     """
-    function compute_rotation_clockwise(x, y, θ)
-        x_new =  x .* cos(θ) + y .* sin(θ)
-        y_new = -x .* sin(θ) + y .* cos(θ)
 
-        return x_new, y_new
     end
 end
 
@@ -87,8 +82,7 @@ Module for define various shapes
 """
 module DefineShape
     using ..ComputeRotation:
-        compute_rotation_counterclockwise,
-        compute_rotation_clockwise
+        compute_rotation_counterclockwise
 
     """
     Define sphere shape
@@ -227,7 +221,7 @@ Module for computation
 module Compute
     using ..ComputeRotation:
         compute_rotation_counterclockwise,
-        compute_rotation_clockwise
+        check_rotation
     using ..DefineShape:
         sphere_shape
     using Printf
@@ -412,9 +406,9 @@ module Compute
 
 
         # 4. Apply inverse rotation of point group by semimajor axis angle
-        y_z, z_y = compute_rotation_clockwise(y_shift, z_shift, semimajor_angle_x)  # Along x axis
-        x_z, z = compute_rotation_clockwise(x_shift, z_y, semimajor_angle_y)  # Along y axis
-        x, y = compute_rotation_clockwise(x_z, y_z, semimajor_angle_z)  # Along z axis
+        y_z, z_y = compute_rotation_counterclockwise(y_shift, z_shift, -semimajor_angle_x)  # Along x axis
+        x_z, z = compute_rotation_counterclockwise(x_shift, z_y, -semimajor_angle_y)  # Along y axis
+        x, y = compute_rotation_counterclockwise(x_z, y_z, -semimajor_angle_z)  # Along z axis
 
         # 5. Adjust semimajor axis: x -> x/a
         x_std = x / semimajor_length
