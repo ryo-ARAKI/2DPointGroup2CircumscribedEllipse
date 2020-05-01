@@ -1,5 +1,5 @@
 #=
-Julia program to find a circumscribed ellipse for given 3d point data set
+Julia program to find a circumscribed spheroid for given 3d point data set
 =#
 
 """
@@ -32,9 +32,9 @@ module ParamVar
     end
 
     """
-    For circumscribed circle
+    For circumscribed sphere
     """
-    mutable struct Circle
+    mutable struct Sphere
         centre_x::Float64
         centre_y::Float64
         centre_z::Float64
@@ -42,9 +42,9 @@ module ParamVar
     end
 
     """
-    For circumscribed ellipse
+    For circumscribed spheroid
     """
-    mutable struct Ellipse
+    mutable struct Spheroid
         semimajor::Float64
         semiminor::Float64
         angle_x::Float64
@@ -83,12 +83,125 @@ end
 
 
 """
+Module for define various shapes
+"""
+module DefineShape
+    using ..ComputeRotation:
+        compute_rotation_counterclockwise,
+        compute_rotation_clockwise
+
+    """
+    Define sphere shape
+    """
+    function sphere_shape(centre_x, centre_y, radius)
+        θ = LinRange(0, 2*π, 100)
+        centre_x .+ radius*sin.(θ), centre_y .+ radius*cos.(θ)
+    end
+
+
+    """
+    Define spheroid shape
+    1. Define sphere of radius=1: x^2+y^2=1
+    2. Adjust semimajor/minor axis: x -> ax, y -> by
+    3. Rotation by angle
+    4. Shift the centre of spheroid
+    """
+    function spheroid_shape(centre_x, centre_y, semimajor, semiminor, angle)
+        θ = LinRange(0, 2*π, 100)
+        # 2
+        x_tmp = semimajor * sin.(θ)
+        y_tmp = semiminor * cos.(θ)
+        # 3
+        x_rot, y_rot = compute_rotation_counterclockwise(x_tmp, y_tmp, angle)
+        # 4
+        x_rot .+ centre_x, y_rot .+ centre_y
+    end
+
+
+    """
+    Define sphere shape
+    1. Sphere of radius=1: x^2+y^2+z^2=1
+    2. Multiply radius
+    2. Shift the centre of shpere
+    """
+    function sphere_shape(sphere)
+        #1
+        x_tmp, y_tmp, z_tmp = compute_sphere()
+
+        # 2
+        x_tmp *= sphere.radius
+        y_tmp *= sphere.radius
+        z_tmp *= sphere.radius
+
+        # 3
+        sphere.centre_x .+ x_tmp, sphere.centre_y .+ y_tmp, sphere.centre_z .+ z_tmp
+    end
+
+
+    """
+    Compute standard sphere
+    Origin = zero, radius=1
+    """
+    function compute_sphere()
+        dim = 30
+        θ = range(0, stop=π, length=dim)
+        ϕ = range(0, stop=2*π, length=dim)
+
+        x_tmp = sin.(θ) * cos.(ϕ)'
+        y_tmp = sin.(θ) * sin.(ϕ)'
+        z_tmp = cos.(θ) * ones(dim)'
+
+        return x_tmp, y_tmp, z_tmp
+    end
+
+
+    """
+    Define spheroid shape
+    1. Sphere of radius=1: x^2+y^2+z^2=1
+    2. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
+    3. Rotation by angle
+    4. Shift the centre of spheroid
+    """
+    function spheroid_shape(sphere, spheroid)
+        # 1
+        x_tmp, y_tmp, z_tmp = compute_sphere()
+
+        # 2
+        x_tmp *= spheroid.semimajor
+        y_tmp *= spheroid.semiminor
+        z_tmp *= spheroid.semiminor
+
+        # 3
+        x_z, y_z = compute_rotation_counterclockwise(x_tmp, y_tmp, spheroid.angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z_tmp, spheroid.angle_y)  # Along y axis
+        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, spheroid.angle_x)  # Along x axis
+
+        # 4
+        sphere.centre_x .+ x_yz, sphere.centre_y .+ y_xz, sphere.centre_z .+ z_xy
+
+    end
+
+
+    """
+    Define line shape
+    """
+    function line_shape(param, fixed_x, fixed_y, angle)
+        x = -param.x_lim:0.01:param.x_lim
+        intercept = fixed_y - fixed_x * tan(angle)
+        x, tan(angle) .* x .+ intercept
+    end
+end
+
+
+"""
 Module for computation
 """
 module Compute
     using ..ComputeRotation:
         compute_rotation_counterclockwise,
         compute_rotation_clockwise
+    using ..DefineShape:
+        sphere_shape
     using Printf
     using Distributions
 
@@ -102,42 +215,82 @@ module Compute
 
 
     """
-    Distribute points in rectangular region & perform rotation
+    Distribute points
+    1. Distribute points randomly in whole region
+    2. Define sphere of radius=1: x^2+y^2+z^2=1
+    3. Delete points outside of sphere
+    4. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
+    5. Rotation by angle
+    6. Shift the centre of sphere
     """
     function distribute_points(param, dist, points)
-        # Distribute points in rectangular region
-        # x has semimajor, y & z have semiminor axis
+        # 1. Distribute points randomly in whole region
+        # -----Prepare 3*num_points points, since points outside of sphere will be deleted
         x = rand(
-            Normal(0.0, dist.semimajor),
-            param.num_points)
+            Uniform(-param.x_lim, param.x_lim),
+            3*param.num_points
+        )
         y = rand(
-            Normal(0.0, dist.semiminor),
-            param.num_points)
+            Uniform(-param.x_lim, param.x_lim),
+            3*param.num_points
+        )
         z = rand(
-            Normal(0.0, dist.semiminor),
-            param.num_points)
+            Uniform(-param.x_lim, param.x_lim),
+            3*param.num_points
+        )
 
-        # Rotate rectangular region
-        x_z, y_z = compute_rotation_counterclockwise(x, y, dist.angle_z)  # Along z axis
-        x_yz, z_y = compute_rotation_counterclockwise(x_z, z, dist.angle_y)  # Along y axis
+        # 2. Define sphere of radius=1: x^2+y^2+z^2=1
+        # 3. Delete points outside of shepre
+        for itr_point in 1:3*param.num_points
+            distance = compute_distance(
+                0.0, 0.0, 0.0,
+                x[itr_point], y[itr_point], z[itr_point]
+            )
+            if distance > param.x_lim
+                for itr_overwrite in itr_point:3*param.num_points-1
+                    x[itr_overwrite] = x[itr_overwrite+1]  # Overwrite points outside of sphere
+                    y[itr_overwrite] = y[itr_overwrite+1]
+                    z[itr_overwrite] = z[itr_overwrite+1]
+
+                    x[3*param.num_points] = 0.0
+                    y[3*param.num_points] = 0.0
+                    z[3*param.num_points] = 0.0
+                end
+            end
+        end
+
+        # 3.5 Pick up num_points points from array
+        x_sphere = x[1:param.num_points]
+        y_sphere = y[1:param.num_points]
+        z_sphere = z[1:param.num_points]
+
+        #=
+        They might not have enough number of points in shpere...
+        Need to reconsider better implementation
+        =#
+
+        # 4. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
+        x_sphere *= dist.semimajor
+        y_sphere *= dist.semiminor
+        z_sphere *= dist.semiminor
+
+        # 5. Rotate rectangular region
+        x_z, y_z = compute_rotation_counterclockwise(x_sphere, y_sphere, dist.angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z_sphere, dist.angle_y)  # Along y axis
         y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, dist.angle_x)  # Along x axis
 
-        # Shift rectangular region
-        x_shift = x_yz .+ dist.shift_x
-        y_shift = y_xz .+ dist.shift_y
-        z_shift = z_xy .+ dist.shift_z
-
-        points.x = x_shift
-        points.y = y_shift
-        points.z = z_shift
+        # 6. Shift rectangular region
+        points.x = x_yz .+ dist.shift_x
+        points.y = y_xz .+ dist.shift_y
+        points.z = z_xy .+ dist.shift_z
     end
 
 
     """
-    Find centre of circumscribed circle of given point group
+    Find centre of circumscribed sphere of given point group
     cf. https://www.ipsj.or.jp/07editj/promenade/4309.pdf p.6-7
     """
-    function search_circumscribed_circle(param, points, circle)
+    function search_circumscribed_sphere(param, points, sphere)
         # Initial guess = corner of region
         centre_x = -param.x_lim
         centre_y = -param.x_lim
@@ -178,32 +331,36 @@ module Compute
             move *= 0.5
         end
 
-        circle.centre_x = centre_x
-        circle.centre_y = centre_y
-        circle.centre_z = centre_z
-        circle.radius = dist_max
+        println("\nSphere Result:")
+        println(@sprintf "radius %.3f" dist_max)
+        println(@sprintf "centre %.3f %.3f %.3f" centre_x centre_y centre_z)
+
+        sphere.centre_x = centre_x
+        sphere.centre_y = centre_y
+        sphere.centre_z = centre_z
+        sphere.radius = dist_max
     end
 
 
     """
-    Find circumscribed ellipse of given point group based on circumscribed circle
+    Find circumscribed spheroid of given point group based on circumscribed sphere
     1. Shift by the centre coordinate
     2. Find the most distant point
     3. Define semimajor axis length & angle as origin <-> the most distant point
     4. Apply inverse rotation of point group by semimajor axis angle
     5. Adjust semimajor axis: x -> x/a
-    -----iteration for semiminor axis length (originally circle radius)
+    -----iteration for semiminor axis length (originally sphere radius)
     6. Adjust semiminor axis: y -> y/b
-    7. Confirm all points are included in the standard circle of radius=1
+    7. Confirm all points are included in the standard sphere of radius=1
         If so, decrease the semiminor axis length by delta
         If not, exit the loop & define the semiminor axis length
     -----end iteration for semiminor axis
     """
-    function search_circumscribed_ellipse(param, points, circle, ellipse)
+    function search_circumscribed_spheroid(param, points, sphere, spheroid)
         # 1. Shift by the centre coordinate
-        x_shift = points.x .- circle.centre_x
-        y_shift = points.y .- circle.centre_y
-        z_shift = points.z .- circle.centre_z
+        x_shift = points.x .- sphere.centre_x
+        y_shift = points.y .- sphere.centre_y
+        z_shift = points.z .- sphere.centre_z
 
         # 2. Find the most distant point
         dist_max = 0.0
@@ -242,17 +399,17 @@ module Compute
         x_std = x / semimajor_length
 
         # parameter setting for while-loop
-        semiminor_length = circle.radius
-        flag_all_points_in_circle = true
+        semiminor_length = sphere.radius
+        flag_all_points_in_sphere = true
         delta = 0.01
 
-        while flag_all_points_in_circle
+        while flag_all_points_in_sphere
 
             # 6. Adjust semiminor axis: y -> y/b & z -> z/b
             y_std = y / semiminor_length
             z_std = z / semiminor_length
 
-            # 7. Confirm all points are included in the circle
+            # 7. Confirm all points are included in the sphere
             for itr_point in 1:param.num_points
                 dist = compute_distance(
                     0.0, 0.0, 0.0,
@@ -261,28 +418,27 @@ module Compute
 
                 # 6-2. If not, set flag to exit the loop
                 if dist > 1
-                    flag_all_points_in_circle = false
+                    flag_all_points_in_sphere = false
                     break
                 end
             end
 
             # 6-1. If so, decrease the semiminor axis length
-            if flag_all_points_in_circle
+            if flag_all_points_in_sphere
                 semiminor_length -= delta
             end
 
         end
 
-        println("\nResult:")
-        println(
-            @sprintf "semimajor %.3f, semiminor %.3f, angle %.3f %.3f %.3f" semimajor_length semiminor_length semimajor_angle_x semimajor_angle_y semimajor_angle_z
-        )
+        println("\n Spheroid Result:")
+        println(@sprintf "semimajor %.3f, semiminor %.3f" semimajor_length semiminor_length)
+        println(@sprintf "angle %.3f %.3f %.3f" semimajor_angle_x semimajor_angle_y semimajor_angle_z)
 
-        ellipse.semimajor = semimajor_length
-        ellipse.semiminor = semiminor_length
-        ellipse.angle_x = semimajor_angle_x
-        ellipse.angle_y = semimajor_angle_y
-        ellipse.angle_z = semimajor_angle_z
+        spheroid.semimajor = semimajor_length
+        spheroid.semiminor = semiminor_length
+        spheroid.angle_x = semimajor_angle_x
+        spheroid.angle_y = semimajor_angle_y
+        spheroid.angle_z = semimajor_angle_z
     end
 end
 
@@ -291,9 +447,14 @@ end
 Module for plot
 """
 module Output
-    using ..ComputeRotation:
-        compute_rotation_counterclockwise,
-        compute_rotation_clockwise
+    using ..DefineShape:
+        sphere_shape,
+        sphere_shape,
+        spheroid_shape,
+        sphere_shape,
+        spheroid_shape,
+        compute_sphere,
+        line_shape
     using Printf
     using Plots
     gr()
@@ -320,111 +481,9 @@ module Output
 
 
     """
-    Define circle shape
+    Plot points, circumscribed sphere & circumscribed spheroid
     """
-    function circle_shape(centre_x, centre_y, radius)
-        θ = LinRange(0, 2*π, 100)
-        centre_x .+ radius*sin.(θ), centre_y .+ radius*cos.(θ)
-    end
-
-
-    """
-    Define ellipse shape
-    1. Circle of radius=1: x^2+y^2=1
-    2. Adjust semimajor/minor axis: x -> ax, y -> by
-    3. Rotation by angle
-    4. Shift the centre of ellipse
-    """
-    function ellipse_shape(centre_x, centre_y, semimajor, semiminor, angle)
-        θ = LinRange(0, 2*π, 100)
-        # 2
-        x_tmp = semimajor * sin.(θ)
-        y_tmp = semiminor * cos.(θ)
-        # 3
-        x_rot, y_rot = compute_rotation_counterclockwise(x_tmp, y_tmp, angle)
-        # 4
-        x_rot .+ centre_x, y_rot .+ centre_y
-    end
-
-
-    """
-    Compute standard sphere
-    Origin = zero, radius=1
-    """
-    function compute_sphere()
-        dim = 30
-        θ = range(0, stop=π, length=dim)
-        ϕ = range(0, stop=2*π, length=dim)
-
-        x_tmp = sin.(θ) * cos.(ϕ)'
-        y_tmp = sin.(θ) * sin.(ϕ)'
-        z_tmp = cos.(θ) * ones(dim)'
-
-        return x_tmp, y_tmp, z_tmp
-    end
-
-
-    """
-    Define sphere shape
-    1. Sphere of radius=1: x^2+y^2+z^2=1
-    2. Multiply radius
-    2. Shift the centre of shpere
-    """
-    function sphere_shape(circle)
-        #1
-        x_tmp, y_tmp, z_tmp = compute_sphere()
-
-        # 2
-        x_tmp *= circle.radius
-        y_tmp *= circle.radius
-        z_tmp *= circle.radius
-
-        # 3
-        circle.centre_x .+ x_tmp, circle.centre_y .+ y_tmp, circle.centre_z .+ z_tmp
-    end
-
-
-    """
-    Define spheroid shape
-    1. Sphere of radius=1: x^2+y^2+z^2=1
-    2. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
-    3. Rotation by angle
-    4. Shift the centre of ellipse
-    """
-    function spheroid_shape(circle, ellipse)
-        # 1
-        x_tmp, y_tmp, z_tmp = compute_sphere()
-
-        # 2
-        x_tmp *= ellipse.semimajor
-        y_tmp *= ellipse.semiminor
-        z_tmp *= ellipse.semiminor
-
-        # 3
-        x_z, y_z = compute_rotation_counterclockwise(x_tmp, y_tmp, ellipse.angle_z)  # Along z axis
-        x_yz, z_y = compute_rotation_counterclockwise(x_z, z_tmp, ellipse.angle_y)  # Along y axis
-        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, ellipse.angle_x)  # Along x axis
-
-        # 4
-        circle.centre_x .+ x_yz, circle.centre_y .+ y_xz, circle.centre_z .+ z_xy
-
-    end
-
-
-    """
-    Define line shape
-    """
-    function line_shape(param, fixed_x, fixed_y, angle)
-        x = -param.x_lim:0.01:param.x_lim
-        intercept = fixed_y - fixed_x * tan(angle)
-        x, tan(angle) .* x .+ intercept
-    end
-
-
-    """
-    Plot points, circumscribed circle & circumscribed ellipse
-    """
-    function plot_points_circumscribed(param, points, circle, ellipse)
+    function plot_points_circumscribed(param, points, sphere, spheroid)
 
         # Point group
         p = scatter(
@@ -438,15 +497,15 @@ module Output
             title="Point group & its circumscribe"
         )
 
-        # Centre of circle/ellipse
+        # Centre of sphere/spheroid
         p! = scatter!(
-            [circle.centre_x], [circle.centre_y],
+            [sphere.centre_x], [sphere.centre_y],
             markercolor = :red
         )
 
-        # Circumscribed circle
+        # Circumscribed sphere
         p! = plot!(
-            circle_shape(circle.centre_x, circle.centre_y, circle.radius),
+            sphere_shape(sphere.centre_x, sphere.centre_y, sphere.radius),
             seriestype = [:shape,],
             lw = 0.5,
             c = :blue,
@@ -456,11 +515,11 @@ module Output
             aspect_ratio = 1
         )
 
-        # Circumscribed ellipse
+        # Circumscribed spheroid
         p! = plot!(
-            ellipse_shape(
-                circle.centre_x, circle.centre_y,  # Centre is same as circle
-                ellipse.semimajor, ellipse.semiminor, ellipse.angle),
+            spheroid_shape(
+                sphere.centre_x, sphere.centre_y,  # Centre is same as sphere
+                spheroid.semimajor, spheroid.semiminor, spheroid.angle),
             seriestype = [:shape,],
             lw = 0.5,
             c = :green,
@@ -470,11 +529,11 @@ module Output
             aspect_ratio = 1
         )
 
-        # Semimajor axis of circumscribed ellipse
+        # Semimajor axis of circumscribed spheroid
         p! = plot!(
             line_shape(
                 param,
-                circle.centre_x, circle.centre_y, ellipse.angle
+                sphere.centre_x, sphere.centre_y, spheroid.angle
             ),
             lw = 2.0,
             linecolor = :red,
@@ -486,9 +545,9 @@ module Output
 
 
     """
-    Output points, circumscribed circle & circumscribed ellipse in dat file
+    Output points, circumscribed sphere & circumscribed spheroid in dat file
     """
-    function out_points_circumscribed(param, points, circle, ellipse)
+    function out_points_circumscribed(param, points, sphere, spheroid)
 
         # Points information
         pointsfile = open("./tmp/points.dat","w")
@@ -498,24 +557,24 @@ module Output
         close(pointsfile)
 
         # Sphere information
-        sphere = sphere_shape(circle)
-        dims_sphere = size.(sphere)
-        lens_sphere = length.(sphere)
+        sphere_surface = sphere_shape(sphere)
+        dims_sphere = size.(sphere_surface)
+        lens_sphere = length.(sphere_surface)
 
         spherefile = open("./tmp/sphere.dat","w")
         for itr_point = 1:lens_sphere[1]
-            write(spherefile, "$(sphere[1][itr_point])\t$(sphere[2][itr_point])\t$(sphere[3][itr_point])\n")
+            write(spherefile, "$(sphere_surface[1][itr_point])\t$(sphere_surface[2][itr_point])\t$(sphere_surface[3][itr_point])\n")
         end
         close(spherefile)
 
         # Spheroid information
-        spheroid = spheroid_shape(circle, ellipse)
-        dims_spheroid = size.(spheroid)
-        lens_spheroid = length.(spheroid)
+        spheroid_surface = spheroid_shape(sphere, spheroid)
+        dims_spheroid = size.(spheroid_surface)
+        lens_spheroid = length.(spheroid_surface)
 
         spheroidfile = open("./tmp/spheroid.dat","w")
         for itr_point = 1:lens_spheroid[1]
-            write(spheroidfile, "$(spheroid[1][itr_point])\t$(spheroid[2][itr_point])\t$(spheroid[3][itr_point])\n")
+            write(spheroidfile, "$(spheroid_surface[1][itr_point])\t$(spheroid_surface[2][itr_point])\t$(spheroid_surface[3][itr_point])\n")
         end
         close(spheroidfile)
 
@@ -537,8 +596,8 @@ gr(
 using .ParamVar
 using .Compute:
     distribute_points,
-    search_circumscribed_circle,
-    search_circumscribed_ellipse
+    search_circumscribed_sphere,
+    search_circumscribed_spheroid
 using .Output:
     plot_points,
     plot_points_circumscribed,
@@ -576,9 +635,9 @@ dist = ParamVar.Distribution(
 )
 
 println("Given data:")
-println(
-    @sprintf "semimajor %.3f, semiminor %.3f, angle %.3f %.3f %.3f" dist.semimajor dist.semiminor dist.angle_x dist.angle_y dist.angle_z
-)
+println(@sprintf "semimajor %.3f, semiminor %.3f" dist.semimajor dist.semiminor)
+println(@sprintf "angle %.3f %.3f %.3f" dist.angle_x dist.angle_y dist.angle_z)
+println(@sprintf "centre %.3f %.3f %.3f" dist.shift_x dist.shift_y dist.shift_z)
 
 x = Array{Float64}(undef, param.num_points)
 y = Array{Float64}(undef, param.num_points)
@@ -594,7 +653,7 @@ distribute_points(param, dist, points)
 
 
 # ----------------------------------------
-## Find a circumscribed circle of point group
+## Find a circumscribed sphere of point group
 ## Define centre & radius
 ## By iterative method
 # ----------------------------------------
@@ -602,13 +661,13 @@ centre_x = 0.0
 centre_y = 0.0
 centre_z = 0.0
 radius = 0.0
-circle = ParamVar.Circle(centre_x, centre_y, centre_z, radius)
+sphere = ParamVar.Sphere(centre_x, centre_y, centre_z, radius)
 
-search_circumscribed_circle(param, points, circle)
+search_circumscribed_sphere(param, points, sphere)
 
 
 # ----------------------------------------
-## Find a circumscribed ellipse of point group
+## Find a circumscribed spheroid of point group
 ## Define
 ## - centre
 ## - semimajor & semininor axis
@@ -619,20 +678,20 @@ semiminor = 0.0
 angle_x = 0.0
 angle_y = 0.0
 angle_z = 0.0
-ellipse = ParamVar.Ellipse(
+spheroid = ParamVar.Spheroid(
     semimajor, semiminor,
     angle_x, angle_y, angle_z
 )
 
-search_circumscribed_ellipse(param, points, circle, ellipse)
+search_circumscribed_spheroid(param, points, sphere, spheroid)
 
 ###CHECK###
-# set ellipse for check plot
-# ellipse.semimajor = dist.semimajor
-# ellipse.semiminor = dist.semiminor
-# ellipse.angle_x = dist.angle_x
-# ellipse.angle_y = dist.angle_y
-# ellipse.angle_z = dist.angle_z
+# set spheroid for check plot
+# spheroid.semimajor = dist.semimajor
+# spheroid.semiminor = dist.semiminor
+# spheroid.angle_x = dist.angle_x
+# spheroid.angle_y = dist.angle_y
+# spheroid.angle_z = dist.angle_z
 ###CHECK###
 
 """
@@ -642,4 +701,4 @@ plot_points_circumscribed(param, points, circle, ellipse)
 """
 
 # Output result
-out_points_circumscribed(param, points, circle, ellipse)
+out_points_circumscribed(param, points, sphere, spheroid)
