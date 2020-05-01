@@ -184,12 +184,39 @@ module DefineShape
 
     """
     Define line shape
+    1. Define line x = x₀+t, y=y₀, z=z₀
+    2. Rotate them by predetermined angle
     """
-    function line_shape(param, sphere, spheroid)
-        x = -param.x_lim:0.01:param.x_lim
-        y = -param.x_lim:0.01:param.x_lim
-        intercept = sphere.centre_z - sphere.centre_x * tan(spheroid.angle_x)- sphere.centre_y * tan(spheroid.angle_y)
-        x, y, tan(spheroid.angle_x) .* x + tan(spheroid.angle_y) .* y .+ intercept
+    function line_shape(param, dist, sphere, spheroid)
+
+
+        #-----Use sphere & spheroid module information-----
+        # 1. Define line x = x₀+t, y=y₀, z=z₀
+        len_line = Int(param.x_lim*100)
+        x = range(sphere.centre_x, stop=sphere.centre_x, length=len_line)
+        y = range(sphere.centre_y-param.x_lim, stop=sphere.centre_y+param.x_lim, length=len_line)
+        z = range(sphere.centre_z, stop=sphere.centre_z, length=len_line)
+
+        # 2. Rotate line by angle
+        x_z, y_z = compute_rotation_counterclockwise(x, y, spheroid.angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z, spheroid.angle_y)  # Along y axis
+        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, spheroid.angle_x)  # Along x axis
+
+        #=
+        #-----Use Distribution module information-----
+        # 1. Define line x = x₀+t, y=y₀, z=z₀
+        len_line = Int(param.x_lim*100)
+        x = range(dist.shift_x, stop=dist.shift_x, length=len_line)
+        y = range(dist.shift_y-param.x_lim, stop=dist.shift_y+param.x_lim, length=len_line)
+        z = range(dist.shift_z, stop=dist.shift_z, length=len_line)
+
+        # 2. Rotate line by angle
+        x_z, y_z = compute_rotation_counterclockwise(x, y, dist.angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z, dist.angle_y)  # Along y axis
+        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, dist.angle_x)  # Along x axis
+        =#
+
+        x_yz, y_xz, z_xy
     end
 end
 
@@ -541,7 +568,7 @@ module Output
     """
     Output points, circumscribed sphere & circumscribed spheroid in dat file
     """
-    function out_points_circumscribed(param, points, sphere, spheroid)
+    function out_points_circumscribed(param, dist, points, sphere, spheroid)
 
         # Points information
         pointsfile = open("./tmp/points.dat","w")
@@ -579,7 +606,7 @@ module Output
         close(spheroidfile)
 
         # Semimajor axis information
-        semimajor_line = line_shape(param, sphere, spheroid)
+        semimajor_line = line_shape(param, dist, sphere, spheroid)
         lens_semimajor = length.(semimajor_line)
 
         semimajor_linefile = open("./tmp/semimajor.dat","w")
@@ -709,4 +736,4 @@ plot_points_circumscribed(param, points, circle, ellipse)
 """
 
 # Output result
-out_points_circumscribed(param, points, sphere, spheroid)
+out_points_circumscribed(param, dist, points, sphere, spheroid)
