@@ -677,9 +677,7 @@ println(@sprintf "semimajor %.3f, semiminor %.3f" dist.semimajor dist.semiminor)
 println(@sprintf "angle %.3f %.3f %.3f" dist.angle_x dist.angle_y dist.angle_z)
 println(@sprintf "centre %.3f %.3f %.3f" dist.shift_x dist.shift_y dist.shift_z)
 
-x = Array{Float64}(undef, param.num_points)
-y = Array{Float64}(undef, param.num_points)
-z = Array{Float64}(undef, param.num_points)
+x, y, z = [Array{Float64}(undef, param.num_points) for _ = 1:3]
 points = ParamVar.Points(x, y, z)
 
 distribute_points(param, dist, points)
