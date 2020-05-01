@@ -379,9 +379,9 @@ module Compute
             0.0, 0.0, 0.0,
             distant_x, distant_y, distant_z
         )
-        semimajor_angle_x = atan(distant_z, distant_y)  # Along x axis
-        semimajor_angle_y = atan(distant_z, distant_x)  # Along y axis
-        semimajor_angle_z = atan(distant_y, distant_x)  # Along z axis
+        semimajor_angle_x = 0.0  # atan(distant_z, distant_y)  # Along x axis
+        semimajor_angle_y = asin(distant_y)  # Along y axis
+        semimajor_angle_z = atan(distant_z, distant_x)  # Along z axis
 
 
         # 4. Apply inverse rotation of point group by semimajor axis angle
@@ -625,7 +625,7 @@ param = ParamVar.Parameters(
 # ----------------------------------------
 semimajor = 0.6 * x_lim
 semiminor = 0.2 * x_lim
-angle_x = 0.2 * π  # Rotation along x axis
+angle_x = 0.0  # Rotation along x axis
 angle_y = 0.4 * π
 angle_z = 0.6 * π
 shift_x = 0.1  # Shift along x axis
