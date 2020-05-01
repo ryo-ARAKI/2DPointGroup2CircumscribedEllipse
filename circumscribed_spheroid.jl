@@ -200,6 +200,8 @@ module Compute
     using ..ComputeRotation:
         compute_rotation_counterclockwise,
         compute_rotation_clockwise
+    using ..DefineShape:
+        sphere_shape
     using Printf
     using Distributions
 
@@ -213,24 +215,68 @@ module Compute
 
 
     """
-    Distribute points in rectangular region & perform rotation
+    Distribute points
+    1. Distribute points randomly in whole region
+    2. Define sphere of radius=1: x^2+y^2+z^2=1
+    3. Delete points outside of sphere
+    4. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
+    5. Rotation by angle
+    6. Shift the centre of ellipse
     """
     function distribute_points(param, dist, points)
-        # Distribute points in rectangular region
-        # x has semimajor, y & z have semiminor axis
+        # 1. Distribute points randomly in whole region
+        # -----Prepare 3*num_points points, since points outside of sphere will be deleted
         x = rand(
-            Normal(0.0, dist.semimajor),
-            param.num_points)
+            Uniform(-param.x_lim, param.x_lim),
+            3*param.num_points
+        )
         y = rand(
-            Normal(0.0, dist.semiminor),
-            param.num_points)
+            Uniform(-param.x_lim, param.x_lim),
+            3*param.num_points
+        )
         z = rand(
-            Normal(0.0, dist.semiminor),
-            param.num_points)
+            Uniform(-param.x_lim, param.x_lim),
+            3*param.num_points
+        )
+
+        # 2. Define sphere of radius=1: x^2+y^2+z^2=1
+        # 3. Delete points outside of shepre
+        for itr_point in 1:3*param.num_points
+            distance = compute_distance(
+                0.0, 0.0, 0.0,
+                x[itr_point], y[itr_point], z[itr_point]
+            )
+            if distance > param.x_lim
+                for itr_overwrite in itr_point:3*param.num_points-1
+                    x[itr_overwrite] = x[itr_overwrite+1]  # Overwrite points outside of sphere
+                    y[itr_overwrite] = y[itr_overwrite+1]
+                    z[itr_overwrite] = z[itr_overwrite+1]
+
+                    x[3*param.num_points] = 0.0
+                    y[3*param.num_points] = 0.0
+                    z[3*param.num_points] = 0.0
+                end
+            end
+        end
+
+        # 3.5 Pick up num_points points from array
+        x_sphere = x[1:param.num_points]
+        y_sphere = y[1:param.num_points]
+        z_sphere = z[1:param.num_points]
+
+        #=
+        They might not have enough number of points in shpere...
+        Need to reconsider better implementation
+        =#
+
+        # 4. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
+        x_sphere *= dist.semimajor
+        y_sphere *= dist.semiminor
+        z_sphere *= dist.semiminor
 
         # Rotate rectangular region
-        x_z, y_z = compute_rotation_counterclockwise(x, y, dist.angle_z)  # Along z axis
-        x_yz, z_y = compute_rotation_counterclockwise(x_z, z, dist.angle_y)  # Along y axis
+        x_z, y_z = compute_rotation_counterclockwise(x_sphere, y_sphere, dist.angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z_sphere, dist.angle_y)  # Along y axis
         y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, dist.angle_x)  # Along x axis
 
         # Shift rectangular region
