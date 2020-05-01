@@ -221,7 +221,7 @@ module Compute
     3. Delete points outside of sphere
     4. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
     5. Rotation by angle
-    6. Shift the centre of ellipse
+    6. Shift the centre of sphere
     """
     function distribute_points(param, dist, points)
         # 1. Distribute points randomly in whole region
@@ -274,19 +274,15 @@ module Compute
         y_sphere *= dist.semiminor
         z_sphere *= dist.semiminor
 
-        # Rotate rectangular region
+        # 5. Rotate rectangular region
         x_z, y_z = compute_rotation_counterclockwise(x_sphere, y_sphere, dist.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z_sphere, dist.angle_y)  # Along y axis
         y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, dist.angle_x)  # Along x axis
 
-        # Shift rectangular region
-        x_shift = x_yz .+ dist.shift_x
-        y_shift = y_xz .+ dist.shift_y
-        z_shift = z_xy .+ dist.shift_z
-
-        points.x = x_shift
-        points.y = y_shift
-        points.z = z_shift
+        # 6. Shift rectangular region
+        points.x = x_yz .+ dist.shift_x
+        points.y = y_xz .+ dist.shift_y
+        points.z = z_xy .+ dist.shift_z
     end
 
 
