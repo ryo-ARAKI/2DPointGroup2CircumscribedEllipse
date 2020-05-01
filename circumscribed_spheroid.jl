@@ -252,9 +252,7 @@ module Compute
                     y[itr_overwrite] = y[itr_overwrite+1]
                     z[itr_overwrite] = z[itr_overwrite+1]
 
-                    x[3*param.num_points] = 0.0
-                    y[3*param.num_points] = 0.0
-                    z[3*param.num_points] = 0.0
+                    x[3*param.num_points], y[3*param.num_points], z[3*param.num_points] = [0.0 for _ = 1:3]
                 end
             end
         end
@@ -292,9 +290,7 @@ module Compute
     """
     function search_circumscribed_sphere(param, points, sphere)
         # Initial guess = corner of region
-        centre_x = -param.x_lim
-        centre_y = -param.x_lim
-        centre_z = -param.x_lim
+        centre_x, centre_y, centre_z = [0.0 for _ = 1:3]
 
         # Ratio of movement/distance to the most far point
         num_move = param.num_points
@@ -305,9 +301,7 @@ module Compute
             for itr_move = 1:num_move
                 # Find the most far point
                 dist_max = 0.0
-                object_x = 0.0
-                object_y = 0.0
-                object_z = 0.0
+                object_x, object_y, object_z = [0.0 for _ = 1:3]
                 for itr_point = 1:param.num_points
                     dist = compute_distance(
                         centre_x, centre_y, centre_z,
@@ -364,9 +358,8 @@ module Compute
 
         # 2. Find the most distant point
         dist_max = 0.0
-        distant_x = 0.0
-        distant_y = 0.0
-        distant_z = 0.0
+
+        distant_x, distant_y, distant_z = [0.0 for _ = 1:3]
         for itr_point = 1:param.num_points
             dist = compute_distance(
                 0.0, 0.0, 0.0,
@@ -657,9 +650,7 @@ distribute_points(param, dist, points)
 ## Define centre & radius
 ## By iterative method
 # ----------------------------------------
-centre_x = 0.0
-centre_y = 0.0
-centre_z = 0.0
+centre_x, centre_y, centre_z = [0.0 for _ = 1:3]
 radius = 0.0
 sphere = ParamVar.Sphere(centre_x, centre_y, centre_z, radius)
 
@@ -673,11 +664,8 @@ search_circumscribed_sphere(param, points, sphere)
 ## - semimajor & semininor axis
 ## - angle of semimajor axis & x axis
 # ----------------------------------------
-semimajor = 0.0
-semiminor = 0.0
-angle_x = 0.0
-angle_y = 0.0
-angle_z = 0.0
+semimajor, semiminor = [0.0 for _ = 1:2]
+angle_x, angle_y, angle_z = [0.0 for _ = 1:3]
 spheroid = ParamVar.Spheroid(
     semimajor, semiminor,
     angle_x, angle_y, angle_z
