@@ -58,6 +58,7 @@ end
 Module for rotation computation
 """
 module ComputeRotation
+    using Printf
 
     """
     Compute rotation by counter-clockwise
@@ -71,8 +72,26 @@ module ComputeRotation
 
 
     """
+    DEBUG
+    Check rotation manipulation
     """
+    function check_rotation()
+        # Define test vector
+        x = 1.0; y = 0.0; z = 0.0
+        println(@sprintf "\nvec = %.3f %.3f %.3f" x y z)
 
+        # Perform rotation
+        α=π/3.0; β=π/4.0; γ=π/5.0;
+        x_z, y_z = compute_rotation_counterclockwise(x, y, γ)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z, β)  # Along y axis
+        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, α)  # Along x axis
+        println(@sprintf "rot = %.3f %.3f %.3f" x_yz y_xz z_xy)
+
+        # Perform inverse rotation
+        y_z, z_y = compute_rotation_counterclockwise(y_xz, z_xy, -α)  # Along x axis
+        x_z, z = compute_rotation_counterclockwise(x_yz, z_y, -β)  # Along y axis
+        x, y = compute_rotation_counterclockwise(x_z, y_z, -γ)  # Along z axis
+        println(@sprintf "inv = %.3f %.3f %.3f" x y z)
     end
 end
 
@@ -246,6 +265,9 @@ module Compute
     6. Shift the centre of sphere
     """
     function distribute_points(param, dist, points)
+        ###CHECK###
+        check_rotation()
+        ###CHECK###
         # 1. Distribute points randomly in whole region
         # -----Prepare 3*num_points points, since points outside of sphere will be deleted
         x = rand(
