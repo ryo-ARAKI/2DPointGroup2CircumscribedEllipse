@@ -579,7 +579,6 @@ module Output
 
         # Sphere information
         sphere_surface = sphere_shape(sphere)
-        dims_sphere = size.(sphere_surface)
         lens_sphere = length.(sphere_surface)
 
         spherefile = open("./tmp/sphere.dat","w")
@@ -593,7 +592,6 @@ module Output
 
         # Spheroid information
         spheroid_surface = spheroid_shape(sphere, spheroid)
-        dims_spheroid = size.(spheroid_surface)
         lens_spheroid = length.(spheroid_surface)
 
         spheroidfile = open("./tmp/spheroid.dat","w")
