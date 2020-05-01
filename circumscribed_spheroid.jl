@@ -185,10 +185,11 @@ module DefineShape
     """
     Define line shape
     """
-    function line_shape(param, fixed_x, fixed_y, angle)
+    function line_shape(param, sphere, spheroid)
         x = -param.x_lim:0.01:param.x_lim
-        intercept = fixed_y - fixed_x * tan(angle)
-        x, tan(angle) .* x .+ intercept
+        y = -param.x_lim:0.01:param.x_lim
+        intercept = sphere.centre_z - sphere.centre_x * tan(spheroid.angle_x)- sphere.centre_y * tan(spheroid.angle_y)
+        x, y, tan(spheroid.angle_x) .* x + tan(spheroid.angle_y) .* y .+ intercept
     end
 end
 
@@ -570,6 +571,16 @@ module Output
             write(spheroidfile, "$(spheroid_surface[1][itr_point])\t$(spheroid_surface[2][itr_point])\t$(spheroid_surface[3][itr_point])\n")
         end
         close(spheroidfile)
+
+        # Semimajor axis information
+        semimajor_line = line_shape(param, sphere, spheroid)
+        lens_semimajor = length.(semimajor_line)
+
+        semimajor_linefile = open("./tmp/semimajor.dat","w")
+        for itr_point = 1:lens_semimajor[1]
+            write(semimajor_linefile, "$(semimajor_line[1][itr_point])\t$(semimajor_line[2][itr_point])\t$(semimajor_line[3][itr_point])\n")
+        end
+        close(semimajor_linefile)
 
     end
 end
