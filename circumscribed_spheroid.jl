@@ -331,6 +331,10 @@ module Compute
             move *= 0.5
         end
 
+        println("\nSphere Result:")
+        println(@sprintf "radius %.3f" dist_max)
+        println(@sprintf "centre %.3f %.3f %.3f" centre_x centre_y centre_z)
+
         circle.centre_x = centre_x
         circle.centre_y = centre_y
         circle.centre_z = centre_z
@@ -426,10 +430,9 @@ module Compute
 
         end
 
-        println("\nResult:")
-        println(
-            @sprintf "semimajor %.3f, semiminor %.3f, angle %.3f %.3f %.3f" semimajor_length semiminor_length semimajor_angle_x semimajor_angle_y semimajor_angle_z
-        )
+        println("\n Spheroid Result:")
+        println(@sprintf "semimajor %.3f, semiminor %.3f" semimajor_length semiminor_length)
+        println(@sprintf "angle %.3f %.3f %.3f" semimajor_angle_x semimajor_angle_y semimajor_angle_z)
 
         ellipse.semimajor = semimajor_length
         ellipse.semiminor = semiminor_length
@@ -632,9 +635,9 @@ dist = ParamVar.Distribution(
 )
 
 println("Given data:")
-println(
-    @sprintf "semimajor %.3f, semiminor %.3f, angle %.3f %.3f %.3f" dist.semimajor dist.semiminor dist.angle_x dist.angle_y dist.angle_z
-)
+println(@sprintf "semimajor %.3f, semiminor %.3f" dist.semimajor dist.semiminor)
+println(@sprintf "angle %.3f %.3f %.3f" dist.angle_x dist.angle_y dist.angle_z)
+println(@sprintf "centre %.3f %.3f %.3f" dist.shift_x dist.shift_y dist.shift_z)
 
 x = Array{Float64}(undef, param.num_points)
 y = Array{Float64}(undef, param.num_points)
