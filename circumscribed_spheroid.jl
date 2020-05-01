@@ -557,24 +557,24 @@ module Output
         close(pointsfile)
 
         # Sphere information
-        sphere = sphere_shape(sphere)
-        dims_sphere = size.(sphere)
-        lens_sphere = length.(sphere)
+        sphere_surface = sphere_shape(sphere)
+        dims_sphere = size.(sphere_surface)
+        lens_sphere = length.(sphere_surface)
 
         spherefile = open("./tmp/sphere.dat","w")
         for itr_point = 1:lens_sphere[1]
-            write(spherefile, "$(sphere[1][itr_point])\t$(sphere[2][itr_point])\t$(sphere[3][itr_point])\n")
+            write(spherefile, "$(sphere_surface[1][itr_point])\t$(sphere_surface[2][itr_point])\t$(sphere_surface[3][itr_point])\n")
         end
         close(spherefile)
 
         # Spheroid information
-        spheroid = spheroid_shape(sphere, spheroid)
-        dims_spheroid = size.(spheroid)
-        lens_spheroid = length.(spheroid)
+        spheroid_surface = spheroid_shape(sphere, spheroid)
+        dims_spheroid = size.(spheroid_surface)
+        lens_spheroid = length.(spheroid_surface)
 
         spheroidfile = open("./tmp/spheroid.dat","w")
         for itr_point = 1:lens_spheroid[1]
-            write(spheroidfile, "$(spheroid[1][itr_point])\t$(spheroid[2][itr_point])\t$(spheroid[3][itr_point])\n")
+            write(spheroidfile, "$(spheroid_surface[1][itr_point])\t$(spheroid_surface[2][itr_point])\t$(spheroid_surface[3][itr_point])\n")
         end
         close(spheroidfile)
 
