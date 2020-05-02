@@ -421,8 +421,8 @@ module Compute
             0.0, 0.0, 0.0,
             distant_x, distant_y, distant_z
         )
-        semimajor_angle_y = asin(distant_y)  # Along y axis
-        semimajor_angle_z = atan(distant_z, distant_x)  # Along z axis
+        semimajor_angle_y = atan(distant_z, distant_x)  # Along y axis
+        semimajor_angle_z = asin(distant_y)  # Along z axis
 
 
         # 4. Apply inverse rotation of point group by semimajor axis angle
