@@ -22,6 +22,19 @@ module ParamVar
     end
 
     """
+    Check parameters
+    """
+    function ParameterCheck(dist)
+        # Check angles
+        if dist.angle_y<-π/2 || dist.angle_y>π/2
+            throw(DomainError(dist.angle_y, "angle along y axis must be [-π/2, π/2]"))
+        end
+        if dist.angle_z<-π/2 || dist.angle_z>π/2
+            throw(DomainError(dist.angle_z, "angle along z axis must be [-π/2, π/2]"))
+        end
+    end
+
+    """
     For point group
     """
     mutable struct Points
@@ -719,8 +732,8 @@ param = ParamVar.Parameters(
 semimajor = 0.6 * x_lim
 semiminor = 0.2 * x_lim
 # No rotation for x axis since it does not affect the spheroid shape
-angle_y = 0.4 * π  # Rotation along y axis
-angle_z = 0.6 * π
+angle_y = π/3.0  # Rotation along y axis
+angle_z = π/4.0
 shift_x = 0.1  # Shift along x axis
 shift_y = 0.2
 shift_z = 0.3
@@ -730,6 +743,7 @@ dist = ParamVar.Distribution(
     angle_y, angle_z,
     shift_x, shift_y, shift_z
 )
+ParamVar.ParameterCheck(dist)
 
 println("Given data:")
 println(@sprintf "semimajor %.3f, semiminor %.3f" dist.semimajor dist.semiminor)
