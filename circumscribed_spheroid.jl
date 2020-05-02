@@ -466,8 +466,10 @@ module Compute
             0.0, 0.0, 0.0,
             distant_x, distant_y, distant_z
         )
-        semimajor_angle_y = atan(distant_z, distant_x)  # Along y axis
-        semimajor_angle_z = asin(distant_y)  # Along z axis
+        println(@sprintf "most distant point x: %.3f, y: %.3f, z: %.3f r: %.3f" distant_x distant_y distant_z semimajor_length)
+
+        semimajor_angle_y = atan(distant_z/semimajor_length, distant_x/semimajor_length)  # Along y axis
+        semimajor_angle_z = asin(distant_y/semimajor_length)  # Along z axis
 
 
         # 4. Apply inverse rotation of point group by semimajor axis angle
