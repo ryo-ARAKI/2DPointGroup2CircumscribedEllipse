@@ -76,18 +76,18 @@ module ComputeRotation
     function check_rotation()
         # Define test vector
         x = 1.0; y = 0.0; z = 0.0
-        println(@sprintf "\nvec = %.3f %.3f %.3f" x y z)
+        println(@sprintf "\nvec = %.3f, %.3f, %.3f" x y z)
 
         # Perform rotation
         α=π/3.0; β=π/4.0; γ=π/5.0;
         x_z, y_z = compute_rotation_counterclockwise(x, y, γ)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, β)  # Along y axis
-        println(@sprintf "rot = %.3f %.3f %.3f" x_yz y_z z_y)
+        println(@sprintf "rot = %.3f, %.3f, %.3f" x_yz y_z z_y)
 
         # Perform inverse rotation
         x_z, z = compute_rotation_counterclockwise(x_yz, z_y, -β)  # Along y axis
         x, y = compute_rotation_counterclockwise(x_z, y_z, -γ)  # Along z axis
-        println(@sprintf "inv = %.3f %.3f %.3f" x y z)
+        println(@sprintf "inv = %.3f, %.3f, %.3f" x y z)
     end
 end
 
@@ -363,7 +363,7 @@ module Compute
 
         println("\nSphere Result:")
         println(@sprintf "radius %.3f" dist_max)
-        println(@sprintf "centre %.3f %.3f %.3f" centre_x centre_y centre_z)
+        println(@sprintf "centre x: %.3f, y: %.3f, z: %.3f" centre_x centre_y centre_z)
 
         sphere.centre_x = centre_x
         sphere.centre_y = centre_y
@@ -459,7 +459,7 @@ module Compute
 
         println("\n Spheroid Result:")
         println(@sprintf "semimajor %.3f, semiminor %.3f" semimajor_length semiminor_length)
-        println(@sprintf "angle %.3f %.3f" semimajor_angle_y semimajor_angle_z)
+        println(@sprintf "angle along y axis: %.3f, z axis: %.3f" semimajor_angle_y semimajor_angle_z)
 
         spheroid.semimajor = semimajor_length
         spheroid.semiminor = semiminor_length
@@ -679,8 +679,8 @@ dist = ParamVar.Distribution(
 
 println("Given data:")
 println(@sprintf "semimajor %.3f, semiminor %.3f" dist.semimajor dist.semiminor)
-println(@sprintf "angle %.3f %.3f" dist.angle_y dist.angle_z)
-println(@sprintf "centre %.3f %.3f %.3f" dist.shift_x dist.shift_y dist.shift_z)
+println(@sprintf "angle along y axis: %.3f, z axis: %.3f" dist.angle_y dist.angle_z)
+println(@sprintf "centre x: %.3f, y: %.3f, z: %.3f" dist.shift_x dist.shift_y dist.shift_z)
 
 x, y, z = [Array{Float64}(undef, param.num_points) for _ = 1:3]
 points = ParamVar.Points(x, y, z)
