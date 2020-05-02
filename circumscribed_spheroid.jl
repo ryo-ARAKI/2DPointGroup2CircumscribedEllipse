@@ -14,7 +14,6 @@ module ParamVar
     struct Distribution
         semimajor::Float64  # Region of points distribution
         semiminor::Float64
-        angle_x::Float64   # Angle of points distribution
         angle_y::Float64
         angle_z::Float64
         shift_x::Float64   # Shift of points distribution
@@ -47,7 +46,6 @@ module ParamVar
     mutable struct Spheroid
         semimajor::Float64
         semiminor::Float64
-        angle_x::Float64
         angle_y::Float64
         angle_z::Float64
     end
@@ -84,11 +82,9 @@ module ComputeRotation
         α=π/3.0; β=π/4.0; γ=π/5.0;
         x_z, y_z = compute_rotation_counterclockwise(x, y, γ)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, β)  # Along y axis
-        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, α)  # Along x axis
-        println(@sprintf "rot = %.3f %.3f %.3f" x_yz y_xz z_xy)
+        println(@sprintf "rot = %.3f %.3f %.3f" x_yz y_z z_y)
 
         # Perform inverse rotation
-        y_z, z_y = compute_rotation_counterclockwise(y_xz, z_xy, -α)  # Along x axis
         x_z, z = compute_rotation_counterclockwise(x_yz, z_y, -β)  # Along y axis
         x, y = compute_rotation_counterclockwise(x_z, y_z, -γ)  # Along z axis
         println(@sprintf "inv = %.3f %.3f %.3f" x y z)
@@ -187,10 +183,9 @@ module DefineShape
         # 3
         x_z, y_z = compute_rotation_counterclockwise(x_tmp, y_tmp, spheroid.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z_tmp, spheroid.angle_y)  # Along y axis
-        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, spheroid.angle_x)  # Along x axis
 
         # 4
-        sphere.centre_x .+ x_yz, sphere.centre_y .+ y_xz, sphere.centre_z .+ z_xy
+        sphere.centre_x .+ y_z, sphere.centre_y .+ x_yz, sphere.centre_z .+ z_y
 
     end
 
@@ -213,7 +208,6 @@ module DefineShape
         # 2. Rotate line by angle
         x_z, y_z = compute_rotation_counterclockwise(x, y, spheroid.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, spheroid.angle_y)  # Along y axis
-        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, spheroid.angle_x)  # Along x axis
 
         #=
         #-----Use Distribution module information-----
@@ -226,10 +220,9 @@ module DefineShape
         # 2. Rotate line by angle
         x_z, y_z = compute_rotation_counterclockwise(x, y, dist.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, dist.angle_y)  # Along y axis
-        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, dist.angle_x)  # Along x axis
         =#
 
-        x_yz, y_xz, z_xy
+        x_yz, y_z, z_y
     end
 end
 
@@ -319,12 +312,11 @@ module Compute
         # 5. Rotate rectangular region
         x_z, y_z = compute_rotation_counterclockwise(x_sphere, y_sphere, dist.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z_sphere, dist.angle_y)  # Along y axis
-        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, dist.angle_x)  # Along x axis
 
         # 6. Shift rectangular region
         points.x = x_yz .+ dist.shift_x
-        points.y = y_xz .+ dist.shift_y
-        points.z = z_xy .+ dist.shift_z
+        points.y = y_z .+ dist.shift_y
+        points.z = z_y .+ dist.shift_z
     end
 
 
@@ -422,15 +414,13 @@ module Compute
             0.0, 0.0, 0.0,
             distant_x, distant_y, distant_z
         )
-        semimajor_angle_x = 0.0  # atan(distant_z, distant_y)  # Along x axis
         semimajor_angle_y = asin(distant_y)  # Along y axis
         semimajor_angle_z = atan(distant_z, distant_x)  # Along z axis
 
 
         # 4. Apply inverse rotation of point group by semimajor axis angle
-        y_z, z_y = compute_rotation_counterclockwise(y_shift, z_shift, -semimajor_angle_x)  # Along x axis
-        x_z, z = compute_rotation_counterclockwise(x_shift, z_y, -semimajor_angle_y)  # Along y axis
-        x, y = compute_rotation_counterclockwise(x_z, y_z, -semimajor_angle_z)  # Along z axis
+        x_z, z = compute_rotation_counterclockwise(x_shift, z_shift, -semimajor_angle_y)  # Along y axis
+        x, y = compute_rotation_counterclockwise(x_z, y_shift, -semimajor_angle_z)  # Along z axis
 
         # 5. Adjust semimajor axis: x -> x/a
         x_std = x / semimajor_length
@@ -469,11 +459,10 @@ module Compute
 
         println("\n Spheroid Result:")
         println(@sprintf "semimajor %.3f, semiminor %.3f" semimajor_length semiminor_length)
-        println(@sprintf "angle %.3f %.3f %.3f" semimajor_angle_x semimajor_angle_y semimajor_angle_z)
+        println(@sprintf "angle %.3f %.3f" semimajor_angle_y semimajor_angle_z)
 
         spheroid.semimajor = semimajor_length
         spheroid.semiminor = semiminor_length
-        spheroid.angle_x = semimajor_angle_x
         spheroid.angle_y = semimajor_angle_y
         spheroid.angle_z = semimajor_angle_z
     end
@@ -675,8 +664,8 @@ param = ParamVar.Parameters(
 # ----------------------------------------
 semimajor = 0.6 * x_lim
 semiminor = 0.2 * x_lim
-angle_x = 0.0  # Rotation along x axis
-angle_y = 0.4 * π
+# No rotation for x axis since it does not affect the spheroid shape
+angle_y = 0.4 * π  # Rotation along y axis
 angle_z = 0.6 * π
 shift_x = 0.1  # Shift along x axis
 shift_y = 0.2
@@ -684,13 +673,13 @@ shift_z = 0.3
 
 dist = ParamVar.Distribution(
     semimajor, semiminor,
-    angle_x, angle_y, angle_z,
+    angle_y, angle_z,
     shift_x, shift_y, shift_z
 )
 
 println("Given data:")
 println(@sprintf "semimajor %.3f, semiminor %.3f" dist.semimajor dist.semiminor)
-println(@sprintf "angle %.3f %.3f %.3f" dist.angle_x dist.angle_y dist.angle_z)
+println(@sprintf "angle %.3f %.3f" dist.angle_y dist.angle_z)
 println(@sprintf "centre %.3f %.3f %.3f" dist.shift_x dist.shift_y dist.shift_z)
 
 x, y, z = [Array{Float64}(undef, param.num_points) for _ = 1:3]
@@ -724,10 +713,10 @@ search_circumscribed_sphere(param, points, sphere)
 ## - angle of semimajor axis & x axis
 # ----------------------------------------
 semimajor, semiminor = [0.0 for _ = 1:2]
-angle_x, angle_y, angle_z = [0.0 for _ = 1:3]
+angle_y, angle_z = [0.0 for _ = 1:2]
 spheroid = ParamVar.Spheroid(
     semimajor, semiminor,
-    angle_x, angle_y, angle_z
+    angle_y, angle_z
 )
 
 search_circumscribed_spheroid(param, points, sphere, spheroid)
@@ -736,7 +725,6 @@ search_circumscribed_spheroid(param, points, sphere, spheroid)
 # set spheroid for check plot
 # spheroid.semimajor = dist.semimajor
 # spheroid.semiminor = dist.semiminor
-# spheroid.angle_x = dist.angle_x
 # spheroid.angle_y = dist.angle_y
 # spheroid.angle_z = dist.angle_z
 ###CHECK###
