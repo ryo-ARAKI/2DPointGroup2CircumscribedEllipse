@@ -76,24 +76,25 @@ module ComputeRotation
     function check_rotation()
         # Define test vector
         x = 1.0; y = 0.0; z = 0.0
-        println(@sprintf "\nvec = %.3f, %.3f, %.3f (original)" x y z)
 
         # Perform rotation
         β=π/4.0; γ=π/5.0;
-        println(@sprintf "angle along y axis: %.3f, z axis: %.3f (parameter)" β γ)
         x_z, y_z = compute_rotation_counterclockwise(x, y, γ)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, β)  # Along y axis
-        println(@sprintf "vec = %.3f, %.3f, %.3f (rotation)" x_yz y_z z_y)
 
         # Compute angle of rotation from converted coordinate
         β_ = atan(z_y, x_yz)  # Along y axis
         γ_ = asin(y_z)  # Along z axis
-        println(@sprintf "angle along y axis: %.3f, z axis: %.3f (computed)" β_ γ_)
 
         # Perform inverse rotation
-        x_z, z = compute_rotation_counterclockwise(x_yz, z_y, -β)  # Along y axis
-        x, y = compute_rotation_counterclockwise(x_z, y_z, -γ)  # Along z axis
-        println(@sprintf "vec = %.3f, %.3f, %.3f (rotation & inverse rotation)" x y z)
+        x_z, z_ = compute_rotation_counterclockwise(x_yz, z_y, -β)  # Along y axis
+        x_, y_ = compute_rotation_counterclockwise(x_z, y_z, -γ)  # Along z axis
+
+        println(@sprintf "\nvec = %.3f, %.3f, %.3f (original)" x y z)
+        println(@sprintf "vec = %.3f, %.3f, %.3f (rotation)" x_yz y_z z_y)
+        println(@sprintf "vec = %.3f, %.3f, %.3f (rotation & inverse rotation)" x_ y_ z_)
+        println(@sprintf "angle along y axis: %.3f, z axis: %.3f (parameter)" β γ)
+        println(@sprintf "angle along y axis: %.3f, z axis: %.3f (computed)" β_ γ_)
     end
 end
 
