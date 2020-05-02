@@ -152,7 +152,7 @@ module DefineShape
     Origin = zero, radius=1
     """
     function compute_sphere()
-        dim = 30
+        dim = 20
         θ = range(0, stop=π, length=dim)
         ϕ = range(0, stop=2*π, length=dim)
 
@@ -651,7 +651,7 @@ using .Output:
 # ----------------------------------------
 ## Declare parameters
 # ----------------------------------------
-num_points = 50
+num_points = 400
 x_lim = 1.0
 
 param = ParamVar.Parameters(
