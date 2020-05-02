@@ -247,6 +247,46 @@ module Compute
     using Distributions
 
     """
+    DEBUG
+    Check computation of angle by coordinates
+    """
+    function compute_angle(param, dist, points)
+        # 1. Shift by the centre coordinate
+        x_shift = points.x .- dist.shift_x
+        y_shift = points.y .- dist.shift_y
+        z_shift = points.z .- dist.shift_z
+
+        # 2. Find the most distant point
+        dist_max = 0.0
+
+        distant_x, distant_y, distant_z = [0.0 for _ = 1:3]
+        for itr_point = 1:param.num_points
+            dist = compute_distance(
+                0.0, 0.0, 0.0,
+                x_shift[itr_point], y_shift[itr_point], z_shift[itr_point]
+            )
+            if dist > dist_max
+                dist_max = dist
+                distant_x = x_shift[itr_point]
+                distant_y = y_shift[itr_point]
+                distant_z = z_shift[itr_point]
+            end
+        end
+
+        # 3. Define semimajor axis length & angle
+        semimajor_length = compute_distance(
+            0.0, 0.0, 0.0,
+            distant_x, distant_y, distant_z
+        )
+        semimajor_angle_y = atan(distant_z/semimajor_length, distant_x/semimajor_length)  # Along y axis
+        semimajor_angle_z = asin(distant_y/semimajor_length)  # Along z axis
+
+        println(@sprintf "\nComputation from distributed points information")
+        println(@sprintf "most distant point x: %.3f, y: %.3f, z: %.3f r: %.3f" distant_x distant_y distant_z semimajor_length)
+        println(@sprintf "angle along y axis: %.3f, z axis: %.3f" semimajor_angle_y semimajor_angle_z)
+    end
+
+    """
     Compute distance between two points
     """
     function compute_distance(x1, y1, z1, x2, y2, z2)
@@ -266,7 +306,7 @@ module Compute
     """
     function distribute_points(param, dist, points)
         ###CHECK###
-        check_rotation()
+        # check_rotation()
         ###CHECK###
         # 1. Distribute points randomly in whole region
         # -----Prepare 3*num_points points, since points outside of sphere will be deleted
@@ -324,6 +364,11 @@ module Compute
         points.x = x_yz .+ dist.shift_x
         points.y = y_z .+ dist.shift_y
         points.z = z_y .+ dist.shift_z
+
+        ###CHECK###
+        # Compute angle by spheroid surface information
+        compute_angle(param, dist, points)
+        ###CHECK###
     end
 
 
