@@ -14,12 +14,24 @@ module ParamVar
     struct Distribution
         semimajor::Float64  # Region of points distribution
         semiminor::Float64
-        angle_x::Float64   # Angle of points distribution
         angle_y::Float64
         angle_z::Float64
         shift_x::Float64   # Shift of points distribution
         shift_y::Float64
         shift_z::Float64
+    end
+
+    """
+    Check parameters
+    """
+    function ParameterCheck(dist)
+        # Check angles
+        if dist.angle_y<-π/2 || dist.angle_y>π/2
+            throw(DomainError(dist.angle_y, "angle along y axis must be [-π/2, π/2]"))
+        end
+        if dist.angle_z<-π/2 || dist.angle_z>π/2
+            throw(DomainError(dist.angle_z, "angle along z axis must be [-π/2, π/2]"))
+        end
     end
 
     """
@@ -47,7 +59,6 @@ module ParamVar
     mutable struct Spheroid
         semimajor::Float64
         semiminor::Float64
-        angle_x::Float64
         angle_y::Float64
         angle_z::Float64
     end
@@ -58,6 +69,7 @@ end
 Module for rotation computation
 """
 module ComputeRotation
+    using Printf
 
     """
     Compute rotation by counter-clockwise
@@ -71,13 +83,31 @@ module ComputeRotation
 
 
     """
-    Compute rotation by clockwise
+    DEBUG
+    Check rotation manipulation
     """
-    function compute_rotation_clockwise(x, y, θ)
-        x_new =  x .* cos(θ) + y .* sin(θ)
-        y_new = -x .* sin(θ) + y .* cos(θ)
+    function check_rotation()
+        # Define test vector
+        x = 1.0; y = 0.0; z = 0.0
 
-        return x_new, y_new
+        # Perform rotation
+        β = π/3.0; γ = π/4.0;
+        x_z, y_z = compute_rotation_counterclockwise(x, y, γ)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z, β)  # Along y axis
+
+        # Compute angle of rotation from converted coordinate
+        β_ = atan(z_y, x_yz)  # Along y axis
+        γ_ = asin(y_z)  # Along z axis
+
+        # Perform inverse rotation
+        x_z, z_ = compute_rotation_counterclockwise(x_yz, z_y, -β)  # Along y axis
+        x_, y_ = compute_rotation_counterclockwise(x_z, y_z, -γ)  # Along z axis
+
+        println(@sprintf "\nvec = %.3f, %.3f, %.3f (original)" x y z)
+        println(@sprintf "vec = %.3f, %.3f, %.3f (rotation)" x_yz y_z z_y)
+        println(@sprintf "vec = %.3f, %.3f, %.3f (rotation & inverse rotation)" x_ y_ z_)
+        println(@sprintf "angle along y axis: %.3f, z axis: %.3f (parameter)" β γ)
+        println(@sprintf "angle along y axis: %.3f, z axis: %.3f (computed)" β_ γ_)
     end
 end
 
@@ -87,8 +117,7 @@ Module for define various shapes
 """
 module DefineShape
     using ..ComputeRotation:
-        compute_rotation_counterclockwise,
-        compute_rotation_clockwise
+        compute_rotation_counterclockwise
 
     """
     Define sphere shape
@@ -143,7 +172,7 @@ module DefineShape
     Origin = zero, radius=1
     """
     function compute_sphere()
-        dim = 30
+        dim = 20
         θ = range(0, stop=π, length=dim)
         ϕ = range(0, stop=2*π, length=dim)
 
@@ -174,21 +203,46 @@ module DefineShape
         # 3
         x_z, y_z = compute_rotation_counterclockwise(x_tmp, y_tmp, spheroid.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z_tmp, spheroid.angle_y)  # Along y axis
-        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, spheroid.angle_x)  # Along x axis
 
         # 4
-        sphere.centre_x .+ x_yz, sphere.centre_y .+ y_xz, sphere.centre_z .+ z_xy
+        sphere.centre_x .+ y_z, sphere.centre_y .+ x_yz, sphere.centre_z .+ z_y
 
     end
 
 
     """
     Define line shape
+    1. Define line x = x₀+t, y=y₀, z=z₀
+    2. Rotate them by predetermined angle
     """
-    function line_shape(param, fixed_x, fixed_y, angle)
-        x = -param.x_lim:0.01:param.x_lim
-        intercept = fixed_y - fixed_x * tan(angle)
-        x, tan(angle) .* x .+ intercept
+    function line_shape(param, dist, sphere, spheroid)
+
+
+        #-----Use sphere & spheroid module information-----
+        # 1. Define line x = x₀+t, y=y₀, z=z₀
+        len_line = Int(param.x_lim*100)
+        x = range(sphere.centre_x, stop=sphere.centre_x, length=len_line)
+        y = range(sphere.centre_y-param.x_lim, stop=sphere.centre_y+param.x_lim, length=len_line)
+        z = range(sphere.centre_z, stop=sphere.centre_z, length=len_line)
+
+        # 2. Rotate line by angle
+        x_z, y_z = compute_rotation_counterclockwise(x, y, spheroid.angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z, spheroid.angle_y)  # Along y axis
+
+        #=
+        #-----Use Distribution module information-----
+        # 1. Define line x = x₀+t, y=y₀, z=z₀
+        len_line = Int(param.x_lim*100)
+        x = range(dist.shift_x, stop=dist.shift_x, length=len_line)
+        y = range(dist.shift_y-param.x_lim, stop=dist.shift_y+param.x_lim, length=len_line)
+        z = range(dist.shift_z, stop=dist.shift_z, length=len_line)
+
+        # 2. Rotate line by angle
+        x_z, y_z = compute_rotation_counterclockwise(x, y, dist.angle_z)  # Along z axis
+        x_yz, z_y = compute_rotation_counterclockwise(x_z, z, dist.angle_y)  # Along y axis
+        =#
+
+        x_yz, y_z, z_y
     end
 end
 
@@ -199,11 +253,51 @@ Module for computation
 module Compute
     using ..ComputeRotation:
         compute_rotation_counterclockwise,
-        compute_rotation_clockwise
+        check_rotation
     using ..DefineShape:
         sphere_shape
     using Printf
     using Distributions
+
+    """
+    DEBUG
+    Check computation of angle by coordinates
+    """
+    function compute_angle(param, dist, points)
+        # 1. Shift by the centre coordinate
+        x_shift = points.x .- dist.shift_x
+        y_shift = points.y .- dist.shift_y
+        z_shift = points.z .- dist.shift_z
+
+        # 2. Find the most distant point
+        dist_max = 0.0
+
+        distant_x, distant_y, distant_z = [0.0 for _ = 1:3]
+        for itr_point = 1:param.num_points
+            dist = compute_distance(
+                0.0, 0.0, 0.0,
+                x_shift[itr_point], y_shift[itr_point], z_shift[itr_point]
+            )
+            if dist > dist_max
+                dist_max = dist
+                distant_x = x_shift[itr_point]
+                distant_y = y_shift[itr_point]
+                distant_z = z_shift[itr_point]
+            end
+        end
+
+        # 3. Define semimajor axis length & angle
+        semimajor_length = compute_distance(
+            0.0, 0.0, 0.0,
+            distant_x, distant_y, distant_z
+        )
+        semimajor_angle_y = atan(distant_z/semimajor_length, distant_x/semimajor_length)  # Along y axis
+        semimajor_angle_z = asin(distant_y/semimajor_length)  # Along z axis
+
+        println(@sprintf "\nComputation from distributed points information")
+        println(@sprintf "most distant point x: %.3f, y: %.3f, z: %.3f r: %.3f" distant_x distant_y distant_z semimajor_length)
+        println(@sprintf "angle along y axis: %.3f, z axis: %.3f" semimajor_angle_y semimajor_angle_z)
+    end
 
     """
     Compute distance between two points
@@ -224,6 +318,9 @@ module Compute
     6. Shift the centre of sphere
     """
     function distribute_points(param, dist, points)
+        ###CHECK###
+        # check_rotation()
+        ###CHECK###
         # 1. Distribute points randomly in whole region
         # -----Prepare 3*num_points points, since points outside of sphere will be deleted
         x = rand(
@@ -252,9 +349,7 @@ module Compute
                     y[itr_overwrite] = y[itr_overwrite+1]
                     z[itr_overwrite] = z[itr_overwrite+1]
 
-                    x[3*param.num_points] = 0.0
-                    y[3*param.num_points] = 0.0
-                    z[3*param.num_points] = 0.0
+                    x[3*param.num_points], y[3*param.num_points], z[3*param.num_points] = [0.0 for _ = 1:3]
                 end
             end
         end
@@ -277,12 +372,16 @@ module Compute
         # 5. Rotate rectangular region
         x_z, y_z = compute_rotation_counterclockwise(x_sphere, y_sphere, dist.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z_sphere, dist.angle_y)  # Along y axis
-        y_xz, z_xy = compute_rotation_counterclockwise(y_z, z_y, dist.angle_x)  # Along x axis
 
         # 6. Shift rectangular region
         points.x = x_yz .+ dist.shift_x
-        points.y = y_xz .+ dist.shift_y
-        points.z = z_xy .+ dist.shift_z
+        points.y = y_z .+ dist.shift_y
+        points.z = z_y .+ dist.shift_z
+
+        ###CHECK###
+        # Compute angle by spheroid surface information
+        compute_angle(param, dist, points)
+        ###CHECK###
     end
 
 
@@ -292,22 +391,18 @@ module Compute
     """
     function search_circumscribed_sphere(param, points, sphere)
         # Initial guess = corner of region
-        centre_x = -param.x_lim
-        centre_y = -param.x_lim
-        centre_z = -param.x_lim
+        centre_x, centre_y, centre_z = [0.0 for _ = 1:3]
 
         # Ratio of movement/distance to the most far point
         num_move = param.num_points
         move = 0.5 * param.x_lim
         dist_max = 0.0
 
-        while move >= 1.0e-4
+        while move >= 1.0e-12
             for itr_move = 1:num_move
                 # Find the most far point
                 dist_max = 0.0
-                object_x = 0.0
-                object_y = 0.0
-                object_z = 0.0
+                object_x, object_y, object_z = [0.0 for _ = 1:3]
                 for itr_point = 1:param.num_points
                     dist = compute_distance(
                         centre_x, centre_y, centre_z,
@@ -333,7 +428,7 @@ module Compute
 
         println("\nSphere Result:")
         println(@sprintf "radius %.3f" dist_max)
-        println(@sprintf "centre %.3f %.3f %.3f" centre_x centre_y centre_z)
+        println(@sprintf "centre x: %.3f, y: %.3f, z: %.3f" centre_x centre_y centre_z)
 
         sphere.centre_x = centre_x
         sphere.centre_y = centre_y
@@ -364,9 +459,8 @@ module Compute
 
         # 2. Find the most distant point
         dist_max = 0.0
-        distant_x = 0.0
-        distant_y = 0.0
-        distant_z = 0.0
+
+        distant_x, distant_y, distant_z = [0.0 for _ = 1:3]
         for itr_point = 1:param.num_points
             dist = compute_distance(
                 0.0, 0.0, 0.0,
@@ -385,15 +479,15 @@ module Compute
             0.0, 0.0, 0.0,
             distant_x, distant_y, distant_z
         )
-        semimajor_angle_x = atan(distant_z, distant_y)  # Along x axis
-        semimajor_angle_y = atan(distant_z, distant_x)  # Along y axis
-        semimajor_angle_z = atan(distant_y, distant_x)  # Along z axis
+        println(@sprintf "most distant point x: %.3f, y: %.3f, z: %.3f r: %.3f" distant_x distant_y distant_z semimajor_length)
+
+        semimajor_angle_y = atan(distant_z/semimajor_length, distant_x/semimajor_length)  # Along y axis
+        semimajor_angle_z = asin(distant_y/semimajor_length)  # Along z axis
 
 
         # 4. Apply inverse rotation of point group by semimajor axis angle
-        y_z, z_y = compute_rotation_clockwise(y_shift, z_shift, semimajor_angle_x)  # Along x axis
-        x_z, z = compute_rotation_clockwise(x_shift, z_y, semimajor_angle_y)  # Along y axis
-        x, y = compute_rotation_clockwise(x_z, y_z, semimajor_angle_z)  # Along z axis
+        x_z, z = compute_rotation_counterclockwise(x_shift, z_shift, -semimajor_angle_y)  # Along y axis
+        x, y = compute_rotation_counterclockwise(x_z, y_shift, -semimajor_angle_z)  # Along z axis
 
         # 5. Adjust semimajor axis: x -> x/a
         x_std = x / semimajor_length
@@ -432,11 +526,10 @@ module Compute
 
         println("\n Spheroid Result:")
         println(@sprintf "semimajor %.3f, semiminor %.3f" semimajor_length semiminor_length)
-        println(@sprintf "angle %.3f %.3f %.3f" semimajor_angle_x semimajor_angle_y semimajor_angle_z)
+        println(@sprintf "angle along y axis: %.3f, z axis: %.3f" semimajor_angle_y semimajor_angle_z)
 
         spheroid.semimajor = semimajor_length
         spheroid.semiminor = semiminor_length
-        spheroid.angle_x = semimajor_angle_x
         spheroid.angle_y = semimajor_angle_y
         spheroid.angle_z = semimajor_angle_z
     end
@@ -547,7 +640,7 @@ module Output
     """
     Output points, circumscribed sphere & circumscribed spheroid in dat file
     """
-    function out_points_circumscribed(param, points, sphere, spheroid)
+    function out_points_circumscribed(param, dist, points, sphere, spheroid)
 
         # Points information
         pointsfile = open("./tmp/points.dat","w")
@@ -558,25 +651,42 @@ module Output
 
         # Sphere information
         sphere_surface = sphere_shape(sphere)
-        dims_sphere = size.(sphere_surface)
         lens_sphere = length.(sphere_surface)
 
         spherefile = open("./tmp/sphere.dat","w")
         for itr_point = 1:lens_sphere[1]
-            write(spherefile, "$(sphere_surface[1][itr_point])\t$(sphere_surface[2][itr_point])\t$(sphere_surface[3][itr_point])\n")
+            write(
+                spherefile,
+                "$(sphere_surface[1][itr_point])\t$(sphere_surface[2][itr_point])\t$(sphere_surface[3][itr_point])\n"
+            )
         end
         close(spherefile)
 
         # Spheroid information
         spheroid_surface = spheroid_shape(sphere, spheroid)
-        dims_spheroid = size.(spheroid_surface)
         lens_spheroid = length.(spheroid_surface)
 
         spheroidfile = open("./tmp/spheroid.dat","w")
         for itr_point = 1:lens_spheroid[1]
-            write(spheroidfile, "$(spheroid_surface[1][itr_point])\t$(spheroid_surface[2][itr_point])\t$(spheroid_surface[3][itr_point])\n")
+            write(
+                spheroidfile,
+                "$(spheroid_surface[1][itr_point])\t$(spheroid_surface[2][itr_point])\t$(spheroid_surface[3][itr_point])\n"
+            )
         end
         close(spheroidfile)
+
+        # Semimajor axis information
+        semimajor_line = line_shape(param, dist, sphere, spheroid)
+        lens_semimajor = length.(semimajor_line)
+
+        semimajor_linefile = open("./tmp/semimajor.dat","w")
+        for itr_point = 1:lens_semimajor[1]
+            write(
+                semimajor_linefile,
+                "$(semimajor_line[1][itr_point])\t$(semimajor_line[2][itr_point])\t$(semimajor_line[3][itr_point])\n"
+            )
+        end
+        close(semimajor_linefile)
 
     end
 end
@@ -608,7 +718,7 @@ using .Output:
 # ----------------------------------------
 ## Declare parameters
 # ----------------------------------------
-num_points = 50
+num_points = 400
 x_lim = 1.0
 
 param = ParamVar.Parameters(
@@ -621,27 +731,26 @@ param = ParamVar.Parameters(
 # ----------------------------------------
 semimajor = 0.6 * x_lim
 semiminor = 0.2 * x_lim
-angle_x = 0.2 * π  # Rotation along x axis
-angle_y = 0.4 * π
-angle_z = 0.6 * π
+# No rotation for x axis since it does not affect the spheroid shape
+angle_y = π/3.0  # Rotation along y axis
+angle_z = π/4.0
 shift_x = 0.1  # Shift along x axis
 shift_y = 0.2
 shift_z = 0.3
 
 dist = ParamVar.Distribution(
     semimajor, semiminor,
-    angle_x, angle_y, angle_z,
+    angle_y, angle_z,
     shift_x, shift_y, shift_z
 )
+ParamVar.ParameterCheck(dist)
 
 println("Given data:")
 println(@sprintf "semimajor %.3f, semiminor %.3f" dist.semimajor dist.semiminor)
-println(@sprintf "angle %.3f %.3f %.3f" dist.angle_x dist.angle_y dist.angle_z)
-println(@sprintf "centre %.3f %.3f %.3f" dist.shift_x dist.shift_y dist.shift_z)
+println(@sprintf "angle along y axis: %.3f, z axis: %.3f" dist.angle_y dist.angle_z)
+println(@sprintf "centre x: %.3f, y: %.3f, z: %.3f" dist.shift_x dist.shift_y dist.shift_z)
 
-x = Array{Float64}(undef, param.num_points)
-y = Array{Float64}(undef, param.num_points)
-z = Array{Float64}(undef, param.num_points)
+x, y, z = [Array{Float64}(undef, param.num_points) for _ = 1:3]
 points = ParamVar.Points(x, y, z)
 
 distribute_points(param, dist, points)
@@ -657,9 +766,7 @@ distribute_points(param, dist, points)
 ## Define centre & radius
 ## By iterative method
 # ----------------------------------------
-centre_x = 0.0
-centre_y = 0.0
-centre_z = 0.0
+centre_x, centre_y, centre_z = [0.0 for _ = 1:3]
 radius = 0.0
 sphere = ParamVar.Sphere(centre_x, centre_y, centre_z, radius)
 
@@ -673,14 +780,11 @@ search_circumscribed_sphere(param, points, sphere)
 ## - semimajor & semininor axis
 ## - angle of semimajor axis & x axis
 # ----------------------------------------
-semimajor = 0.0
-semiminor = 0.0
-angle_x = 0.0
-angle_y = 0.0
-angle_z = 0.0
+semimajor, semiminor = [0.0 for _ = 1:2]
+angle_y, angle_z = [0.0 for _ = 1:2]
 spheroid = ParamVar.Spheroid(
     semimajor, semiminor,
-    angle_x, angle_y, angle_z
+    angle_y, angle_z
 )
 
 search_circumscribed_spheroid(param, points, sphere, spheroid)
@@ -689,7 +793,6 @@ search_circumscribed_spheroid(param, points, sphere, spheroid)
 # set spheroid for check plot
 # spheroid.semimajor = dist.semimajor
 # spheroid.semiminor = dist.semiminor
-# spheroid.angle_x = dist.angle_x
 # spheroid.angle_y = dist.angle_y
 # spheroid.angle_z = dist.angle_z
 ###CHECK###
@@ -701,4 +804,4 @@ plot_points_circumscribed(param, points, circle, ellipse)
 """
 
 # Output result
-out_points_circumscribed(param, points, sphere, spheroid)
+out_points_circumscribed(param, dist, points, sphere, spheroid)
