@@ -91,7 +91,7 @@ module ComputeRotation
         x = 1.0; y = 0.0; z = 0.0
 
         # Perform rotation
-        β=π/4.0; γ=π/5.0;
+        β = π/3.0; γ = π/4.0;
         x_z, y_z = compute_rotation_counterclockwise(x, y, γ)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, β)  # Along y axis
 
@@ -398,7 +398,7 @@ module Compute
         move = 0.5 * param.x_lim
         dist_max = 0.0
 
-        while move >= 1.0e-4
+        while move >= 1.0e-12
             for itr_move = 1:num_move
                 # Find the most far point
                 dist_max = 0.0
