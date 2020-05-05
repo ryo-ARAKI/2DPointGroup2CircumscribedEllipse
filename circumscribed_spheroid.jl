@@ -451,41 +451,64 @@ module Compute
 
 
     """
+    Find the top **% most distant points from zero-centred 3d coordinates
+    """
+    function search_most_distant_points(param, x, y, z)
+        # Set threshold of top **% most distant points
+        thresh_distant = 0.10
+
+        # Compute distance for all particles
+        distant = zeros(Float64, param.num_points)
+        for itr_point = 1:param.num_points
+            distant[itr_point] = compute_distance(
+                0.0, 0.0, 0.0,
+                x[itr_point], y[itr_point], z[itr_point]
+            )
+        end
+
+        num_distant = Array{Int64}(undef, Int(thresh_distant * param.num_points))
+        for itr_distant = 1:Int(thresh_distant * param.num_points)
+            # Pick up the most distant point
+            index_max = argmax(distant)
+            num_distant[itr_distant] = index_max
+
+            # Zeroing index corresponding to the most distant point
+            distant[index_max] = 0.0
+        end
+
+        return num_distant
+    end
+
+
+    """
     Find circumscribed spheroid of given point group based on circumscribed sphere
     1. Shift by the centre coordinate
-    2. Find the most distant point
-    3. Define semimajor axis length & angle as origin <-> the most distant point
-    4. Apply inverse rotation of point group by semimajor axis angle
-    5. Adjust semimajor axis: x -> x/a
+    2. Find the top **% most distant points
+    3. Compute moment along most distant points
+    4. Define semimajor axis length & angle as origin <-> the point among top top **% most distant points with the smallest moment
+    5. Apply inverse rotation of point group by semimajor axis angle
+    6. Adjust semimajor axis: x -> x/a
     -----iteration for semiminor axis length (originally sphere radius)
-    6. Adjust semiminor axis: y -> y/b
-    7. Confirm all points are included in the standard sphere of radius=1
+    7. Adjust semiminor axis: y -> y/b
+    8. Confirm all points are included in the standard sphere of radius=1
         If so, decrease the semiminor axis length by delta
         If not, exit the loop & define the semiminor axis length
     -----end iteration for semiminor axis
     """
     function search_circumscribed_spheroid(param, points, sphere, spheroid)
+
         # 1. Shift by the centre coordinate
         x_shift = points.x .- sphere.centre_x
         y_shift = points.y .- sphere.centre_y
         z_shift = points.z .- sphere.centre_z
 
-        # 2. Find the most distant point
-        dist_max = 0.0
 
-        distant_x, distant_y, distant_z = [0.0 for _ = 1:3]
-        for itr_point = 1:param.num_points
-            dist = compute_distance(
-                0.0, 0.0, 0.0,
-                x_shift[itr_point], y_shift[itr_point], z_shift[itr_point]
-            )
-            if dist > dist_max
-                dist_max = dist
-                distant_x = x_shift[itr_point]
-                distant_y = y_shift[itr_point]
-                distant_z = z_shift[itr_point]
-            end
-        end
+        # 2. Find the top **% most distant points
+        num_distant = search_most_distant_points(
+            param,
+            x_shift, y_shift, z_shift
+        )
+        println(num_distant)
 
         # 3. Define semimajor axis length & angle
         semimajor_length = compute_distance(
