@@ -254,10 +254,10 @@ Module for computation
 """
 module Compute
     using ..ComputeRotation:
-        compute_rotation_counterclockwise,
-        check_rotation
+        compute_rotation_counterclockwise
     using ..DefineShape:
-        sphere_shape
+        sphere_shape,
+        compute_sphere
     using Printf
     using Distributions
 
@@ -320,10 +320,6 @@ module Compute
     6. Shift the centre of sphere
     """
     function distribute_points(param, dist, points)
-        ###CHECK###
-        check_rotation()
-        ###CHECK###
-
         # 1. Distribute points randomly in whole region
         # -----Prepare 3*num_points points, since points outside of sphere will be deleted
         x = rand(
@@ -366,6 +362,11 @@ module Compute
         They might not have enough number of points in shpere...
         Need to reconsider better implementation
         =#
+
+        ###CHECK###
+        # Use surface points instead of points distributed in the domain
+        x_sphere, y_sphere, z_sphere = compute_sphere()
+        ###CHECK###
 
         # 4. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
         x_sphere *= dist.semimajor
@@ -707,6 +708,8 @@ gr(
     markersize = 10
 )
 using .ParamVar
+using .ComputeRotation:
+    check_rotation
 using .Compute:
     distribute_points,
     search_circumscribed_sphere,
@@ -761,6 +764,7 @@ distribute_points(param, dist, points)
 ###CHECK###
 # Plot distribution
 # plot_points(param, points)
+check_rotation()
 ###CHECK###
 
 
