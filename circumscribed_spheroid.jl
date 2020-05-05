@@ -539,6 +539,29 @@ module Compute
 
 
     """
+    Confirm all points are included in the sphere
+    """
+    function check_allpoints_in_sphere(param, x, y, z)
+
+        flag = true
+        for itr_point in 1:param.num_points
+            dist = compute_distance(
+                0.0, 0.0, 0.0,
+                x[itr_point], y[itr_point], z[itr_point]
+            )
+
+            # 8-2. If not, set flag to exit the loop
+            if dist > 1
+                flag = false
+                break
+            end
+        end
+
+        return flag
+    end
+
+
+    """
     Find circumscribed spheroid of given point group based on circumscribed sphere
     1. Shift by the centre coordinate
     2. Find the top **% most distant points
@@ -610,18 +633,10 @@ module Compute
 
 
             # 8. Confirm all points are included in the sphere
-            for itr_point in 1:param.num_points
-                dist = compute_distance(
-                    0.0, 0.0, 0.0,
-                    x_std[itr_point], y_std[itr_point], z_std[itr_point]
-                )
-
-                # 8-2. If not, set flag to exit the loop
-                if dist > 1
-                    flag_all_points_in_sphere = false
-                    break
-                end
-            end
+            flag_all_points_in_sphere = check_allpoints_in_sphere(
+                param,
+                x_std, y_std, z_std,
+            )
 
             # 8-1. If so, decrease the semiminor axis length
             if flag_all_points_in_sphere
