@@ -214,8 +214,9 @@ module DefineShape
 
     """
     Define line shape
-    1. Define line x = x₀+t, y=y₀, z=z₀
+    1. Define line x = t, y=0, z=0
     2. Rotate them by predetermined angle
+    3. Shift line by centre of spheroid
     """
     function line_shape(param, dist, sphere, spheroid)
 
@@ -231,20 +232,20 @@ module DefineShape
         x_z, y_z = compute_rotation_counterclockwise(x, y, spheroid.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, spheroid.angle_y)  # Along y axis
 
-        #=
-        #-----Use Distribution module information-----
-        # 1. Define line x = x₀+t, y=y₀, z=z₀
-        len_line = Int(param.x_lim*100)
-        x = range(dist.shift_x, stop=dist.shift_x, length=len_line)
-        y = range(dist.shift_y-param.x_lim, stop=dist.shift_y+param.x_lim, length=len_line)
-        z = range(dist.shift_z, stop=dist.shift_z, length=len_line)
+        #-----Use fixed points for debug-----
+        # 1. Define points
+        x = [-1.0, 1.0]; y = [0.0, 0.0]; z = [0.0, 0.0]
 
         # 2. Rotate line by angle
         x_z, y_z = compute_rotation_counterclockwise(x, y, dist.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, dist.angle_y)  # Along y axis
-        =#
 
-        x_yz, y_z, z_y
+        # 3. Shift line by centre of distribution
+        x_shift = x_yz .+ dist.shift_x
+        y_shift = y_z .+ dist.shift_y
+        z_shift = z_y .+ dist.shift_z
+
+        x_shift, y_shift, z_shift
     end
 end
 
