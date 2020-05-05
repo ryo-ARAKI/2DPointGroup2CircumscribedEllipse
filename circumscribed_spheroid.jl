@@ -393,7 +393,7 @@ module Compute
 
         ###CHECK###
         # Compute angle by spheroid surface information
-        compute_angle(param, dist, points)
+        # compute_angle(param, dist, points)
         ###CHECK###
     end
 
@@ -773,7 +773,7 @@ distribute_points(param, dist, points)
 ###CHECK###
 # Plot distribution
 # plot_points(param, points)
-check_rotation()
+# check_rotation()
 ###CHECK###
 
 
