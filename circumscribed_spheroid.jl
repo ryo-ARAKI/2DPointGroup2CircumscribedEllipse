@@ -88,16 +88,18 @@ module ComputeRotation
     """
     function check_rotation()
         # Define test vector
-        x = 1.0; y = 0.0; z = 0.0
+        x = 0.6; y = 0.0; z = 0.0
 
         # Perform rotation
         β = π/3.0; γ = π/4.0;
         x_z, y_z = compute_rotation_counterclockwise(x, y, γ)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, β)  # Along y axis
 
+        semimajor = sqrt(x^2+y^2+z^2)
+
         # Compute angle of rotation from converted coordinate
-        β_ = atan(z_y, x_yz)  # Along y axis
-        γ_ = asin(y_z)  # Along z axis
+        β_ = atan(z_y/semimajor, x_yz/semimajor)  # Along y axis
+        γ_ = asin(y_z/semimajor)  # Along z axis
 
         # Perform inverse rotation
         x_z, z_ = compute_rotation_counterclockwise(x_yz, z_y, -β)  # Along y axis
@@ -319,8 +321,9 @@ module Compute
     """
     function distribute_points(param, dist, points)
         ###CHECK###
-        # check_rotation()
+        check_rotation()
         ###CHECK###
+
         # 1. Distribute points randomly in whole region
         # -----Prepare 3*num_points points, since points outside of sphere will be deleted
         x = rand(
