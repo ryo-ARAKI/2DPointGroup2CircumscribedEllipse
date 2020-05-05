@@ -281,21 +281,11 @@ module Compute
         z_shift = points.z .- dist.shift_z
 
         # 2. Find the most distant point
-        dist_max = 0.0
-
-        distant_x, distant_y, distant_z = [0.0 for _ = 1:3]
-        for itr_point = 1:param.num_points
-            dist = compute_distance(
-                0.0, 0.0, 0.0,
-                x_shift[itr_point], y_shift[itr_point], z_shift[itr_point]
-            )
-            if dist > dist_max
-                dist_max = dist
-                distant_x = x_shift[itr_point]
-                distant_y = y_shift[itr_point]
-                distant_z = z_shift[itr_point]
-            end
-        end
+        dist_max, distant_x, distant_y, distant_z = search_most_distant_point(
+            param,
+            0.0, 0.0, 0.0,
+            points.x, points.y, points.z
+        )
 
         # 3. Define semimajor axis length & angle
         semimajor_length = compute_distance(
@@ -374,7 +364,7 @@ module Compute
 
         ###CHECK###
         # Use surface points instead of points distributed in the domain
-        x_sphere, y_sphere, z_sphere = compute_sphere()
+        # x_sphere, y_sphere, z_sphere = compute_sphere()
         ###CHECK###
 
         # 4. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
@@ -413,21 +403,13 @@ module Compute
 
         while move >= 1.0e-12
             for itr_move = 1:num_move
+
                 # Find the most far point
-                dist_max = 0.0
-                object_x, object_y, object_z = [0.0 for _ = 1:3]
-                for itr_point = 1:param.num_points
-                    dist = compute_distance(
-                        centre_x, centre_y, centre_z,
-                        points.x[itr_point], points.y[itr_point], points.z[itr_point]
-                    )
-                    if dist > dist_max
-                        dist_max = dist
-                        object_x = points.x[itr_point]
-                        object_y = points.y[itr_point]
-                        object_z = points.z[itr_point]
-                    end
-                end
+                dist_max, object_x, object_y, object_z = search_most_distant_point(
+                    param,
+                    centre_x, centre_y, centre_z,
+                    points.x, points.y, points.z
+                )
 
                 # Move towards the most far point
                 centre_x += move * (object_x - centre_x)
@@ -451,86 +433,214 @@ module Compute
 
 
     """
+    Find the most distant points from zero-centred 3d coordinates
+    """
+    function search_most_distant_point(param, centre_x, centre_y, centre_z, x, y, z)
+
+        distant = Array{Float64}(undef, param.num_points)
+        for itr_point = 1:param.num_points
+            distant[itr_point] = compute_distance(
+                centre_x, centre_y, centre_z,
+                x[itr_point], y[itr_point], z[itr_point]
+            )
+        end
+        index_max = argmax(distant)
+        dist_max = distant[index_max]
+        distant_x = x[index_max]
+        distant_y = y[index_max]
+        distant_z = z[index_max]
+
+        return distant[index_max], x[index_max], y[index_max], z[index_max]
+    end
+
+
+    """
+    Find the top **% most distant points from zero-centred 3d coordinates
+    """
+    function search_most_distant_points(param, x, y, z)
+        # Set threshold of top **% most distant points
+        thresh_distant = 0.10
+
+        # Compute distance for all particles
+        distant = Array{Float64}(undef, param.num_points)
+        for itr_point = 1:param.num_points
+            distant[itr_point] = compute_distance(
+                0.0, 0.0, 0.0,
+                x[itr_point], y[itr_point], z[itr_point]
+            )
+        end
+
+        num_distant = Array{Int64}(undef, Int(thresh_distant * param.num_points))
+        for itr_distant = 1:Int(thresh_distant * param.num_points)
+            # Pick up the most distant point
+            index_max = argmax(distant)
+            num_distant[itr_distant] = index_max
+
+            # Zeroing index corresponding to the most distant point
+            distant[index_max] = 0.0
+        end
+
+        return num_distant
+    end
+
+
+    """
+    Compute distance as semimajor axis length & its rotation angle
+    """
+    function compute_semimajor_axis_angle(x, y, z)
+        # Compute distance & set it as semimajor axis length
+        semimajor_length = compute_distance(
+            0.0, 0.0, 0.0,
+            x, y, z
+        )
+
+        # Compute rotation angle
+        semimajor_angle_y = atan(z/semimajor_length, x/semimajor_length)  # Along y axis
+        semimajor_angle_z = asin(y/semimajor_length)  # Along z axis
+
+        return semimajor_length, semimajor_angle_y, semimajor_angle_z
+    end
+
+
+
+    """
+    Compute moment along most distant points
+    """
+    function compute_moment_most_distant_points(param, index_list, x, y, z)
+
+        # Initialisation
+        moment_max = 1.0
+        index_smallest_moment = 0
+
+        for itr_index in index_list
+
+            # Compute distance as semimajor axis length & its rotation angle
+            semimajor_length, semimajor_angle_y, semimajor_angle_z = compute_semimajor_axis_angle(x[itr_index], y[itr_index], z[itr_index])
+
+            # 5. Apply inverse rotation of point group by semimajor axis angle
+            x_z, z_ = compute_rotation_counterclockwise(x, z, -semimajor_angle_y)  # Along y axis
+            x_, y_ = compute_rotation_counterclockwise(x_z, y, -semimajor_angle_z)  # Along z axis
+
+            # Compute moment (sum of distance to x axis)
+            moment = 0.0
+            for itr_point = 1:param.num_points
+                moment += compute_distance(
+                    0.0, 0.0, 0.0,
+                    0.0, y_[itr_point], z_[itr_point]
+                )
+            end
+            moment /= param.num_points
+
+            # Update index with minimum moment
+            if moment < moment_max
+                moment_max = moment
+                index_smallest_moment = itr_index
+            end
+        end
+
+        return index_smallest_moment
+    end
+
+
+    """
+    Confirm all points are included in the sphere
+    """
+    function check_allpoints_in_sphere(param, x, y, z)
+
+        flag = true
+        for itr_point in 1:param.num_points
+            dist = compute_distance(
+                0.0, 0.0, 0.0,
+                x[itr_point], y[itr_point], z[itr_point]
+            )
+
+            # 8-2. If not, set flag to exit the loop
+            if dist > 1
+                flag = false
+                break
+            end
+        end
+
+        return flag
+    end
+
+
+    """
     Find circumscribed spheroid of given point group based on circumscribed sphere
     1. Shift by the centre coordinate
-    2. Find the most distant point
-    3. Define semimajor axis length & angle as origin <-> the most distant point
-    4. Apply inverse rotation of point group by semimajor axis angle
-    5. Adjust semimajor axis: x -> x/a
+    2. Find the top **% most distant points
+    3. Compute moment along most distant points
+    4. Define semimajor axis length & angle as origin <-> the point among top top **% most distant points with the smallest moment
+    5. Apply inverse rotation of point group by semimajor axis angle
+    6. Adjust semimajor axis: x -> x/a
     -----iteration for semiminor axis length (originally sphere radius)
-    6. Adjust semiminor axis: y -> y/b
-    7. Confirm all points are included in the standard sphere of radius=1
+    7. Adjust semiminor axis: y -> y/b
+    8. Confirm all points are included in the standard sphere of radius=1
         If so, decrease the semiminor axis length by delta
         If not, exit the loop & define the semiminor axis length
     -----end iteration for semiminor axis
     """
     function search_circumscribed_spheroid(param, points, sphere, spheroid)
+
         # 1. Shift by the centre coordinate
         x_shift = points.x .- sphere.centre_x
         y_shift = points.y .- sphere.centre_y
         z_shift = points.z .- sphere.centre_z
 
-        # 2. Find the most distant point
-        dist_max = 0.0
 
-        distant_x, distant_y, distant_z = [0.0 for _ = 1:3]
-        for itr_point = 1:param.num_points
-            dist = compute_distance(
-                0.0, 0.0, 0.0,
-                x_shift[itr_point], y_shift[itr_point], z_shift[itr_point]
-            )
-            if dist > dist_max
-                dist_max = dist
-                distant_x = x_shift[itr_point]
-                distant_y = y_shift[itr_point]
-                distant_z = z_shift[itr_point]
-            end
-        end
+        # 2. Find the top **% most distant points
+        num_distant = search_most_distant_points(
+            param,
+            x_shift, y_shift, z_shift
+        )
+        println(num_distant)
 
-        # 3. Define semimajor axis length & angle
-        semimajor_length = compute_distance(
-            0.0, 0.0, 0.0,
+
+        # 3. Compute moment along most distant points
+        index_smallest_moment = compute_moment_most_distant_points(
+            param, num_distant,
+            x_shift, y_shift, z_shift
+        )
+
+
+        # 4. Define semimajor axis length & angle
+        distant_x = x_shift[index_smallest_moment]
+        distant_y = y_shift[index_smallest_moment]
+        distant_z = z_shift[index_smallest_moment]
+        semimajor_length, semimajor_angle_y, semimajor_angle_z = compute_semimajor_axis_angle(
             distant_x, distant_y, distant_z
         )
-        println(@sprintf "most distant point x: %.3f, y: %.3f, z: %.3f r: %.3f" distant_x distant_y distant_z semimajor_length)
-
-        semimajor_angle_y = atan(distant_z/semimajor_length, distant_x/semimajor_length)  # Along y axis
-        semimajor_angle_z = asin(distant_y/semimajor_length)  # Along z axis
+        println(@sprintf "most distant point with minimum moment ind:%i, x: %.3f, y: %.3f, z: %.3f r: %.3f" index_smallest_moment distant_x distant_y distant_z semimajor_length)
 
 
-        # 4. Apply inverse rotation of point group by semimajor axis angle
+        # 5. Apply inverse rotation of point group by semimajor axis angle
         x_z, z = compute_rotation_counterclockwise(x_shift, z_shift, -semimajor_angle_y)  # Along y axis
         x, y = compute_rotation_counterclockwise(x_z, y_shift, -semimajor_angle_z)  # Along z axis
 
-        # 5. Adjust semimajor axis: x -> x/a
+
+        # 6. Adjust semimajor axis: x -> x/a
         x_std = x / semimajor_length
 
         # parameter setting for while-loop
-        semiminor_length = sphere.radius
+        semiminor_length = semimajor_length
         flag_all_points_in_sphere = true
         delta = 0.01
 
         while flag_all_points_in_sphere
 
-            # 6. Adjust semiminor axis: y -> y/b & z -> z/b
+
+            # 7. Adjust semiminor axis: y -> y/b & z -> z/b
             y_std = y / semiminor_length
             z_std = z / semiminor_length
 
-            # 7. Confirm all points are included in the sphere
-            for itr_point in 1:param.num_points
-                dist = compute_distance(
-                    0.0, 0.0, 0.0,
-                    x_std[itr_point], y_std[itr_point], z_std[itr_point]
-                )
 
-                # 6-2. If not, set flag to exit the loop
-                if dist > 1
-                    flag_all_points_in_sphere = false
-                    break
-                end
-            end
+            # 8. Confirm all points are included in the sphere
+            flag_all_points_in_sphere = check_allpoints_in_sphere(
+                param,
+                x_std, y_std, z_std,
+            )
 
-            # 6-1. If so, decrease the semiminor axis length
+            # 8-1. If so, decrease the semiminor axis length
             if flag_all_points_in_sphere
                 semiminor_length -= delta
             end
