@@ -88,16 +88,18 @@ module ComputeRotation
     """
     function check_rotation()
         # Define test vector
-        x = 1.0; y = 0.0; z = 0.0
+        x = 0.6; y = 0.0; z = 0.0
 
         # Perform rotation
         β = π/3.0; γ = π/4.0;
         x_z, y_z = compute_rotation_counterclockwise(x, y, γ)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, β)  # Along y axis
 
+        semimajor = sqrt(x^2+y^2+z^2)
+
         # Compute angle of rotation from converted coordinate
-        β_ = atan(z_y, x_yz)  # Along y axis
-        γ_ = asin(y_z)  # Along z axis
+        β_ = atan(z_y/semimajor, x_yz/semimajor)  # Along y axis
+        γ_ = asin(y_z/semimajor)  # Along z axis
 
         # Perform inverse rotation
         x_z, z_ = compute_rotation_counterclockwise(x_yz, z_y, -β)  # Along y axis
@@ -212,37 +214,46 @@ module DefineShape
 
     """
     Define line shape
-    1. Define line x = x₀+t, y=y₀, z=z₀
+    1. Define line x = t, y=0, z=0
     2. Rotate them by predetermined angle
+    3. Shift line by centre of spheroid
     """
     function line_shape(param, dist, sphere, spheroid)
 
 
         #-----Use sphere & spheroid module information-----
-        # 1. Define line x = x₀+t, y=y₀, z=z₀
+        # 1. Define line x = t, y=0, z=0
         len_line = Int(param.x_lim*100)
-        x = range(sphere.centre_x, stop=sphere.centre_x, length=len_line)
-        y = range(sphere.centre_y-param.x_lim, stop=sphere.centre_y+param.x_lim, length=len_line)
-        z = range(sphere.centre_z, stop=sphere.centre_z, length=len_line)
+        x = range(-param.x_lim, stop=param.x_lim, length=len_line)
+        y = range(0.0, stop=0.0, length=len_line)
+        z = range(0.0, stop=0.0, length=len_line)
 
         # 2. Rotate line by angle
         x_z, y_z = compute_rotation_counterclockwise(x, y, spheroid.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, spheroid.angle_y)  # Along y axis
 
+        # 3. Shift line by centre of spheroid
+        x_shift = x_yz .+ sphere.centre_x
+        y_shift = y_z .+ sphere.centre_y
+        z_shift = z_y .+ sphere.centre_z
+
         #=
-        #-----Use Distribution module information-----
-        # 1. Define line x = x₀+t, y=y₀, z=z₀
-        len_line = Int(param.x_lim*100)
-        x = range(dist.shift_x, stop=dist.shift_x, length=len_line)
-        y = range(dist.shift_y-param.x_lim, stop=dist.shift_y+param.x_lim, length=len_line)
-        z = range(dist.shift_z, stop=dist.shift_z, length=len_line)
+        #-----Use fixed points for debug-----
+        # 1. Define points
+        x = [-1.0, 1.0]; y = [0.0, 0.0]; z = [0.0, 0.0]
 
         # 2. Rotate line by angle
         x_z, y_z = compute_rotation_counterclockwise(x, y, dist.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, dist.angle_y)  # Along y axis
+
+        # 3. Shift line by centre of distribution
+        x_shift = x_yz .+ dist.shift_x
+        y_shift = y_z .+ dist.shift_y
+        z_shift = z_y .+ dist.shift_z
+        #-----Use fixed points for debug-----
         =#
 
-        x_yz, y_z, z_y
+        x_shift, y_shift, z_shift
     end
 end
 
@@ -252,10 +263,10 @@ Module for computation
 """
 module Compute
     using ..ComputeRotation:
-        compute_rotation_counterclockwise,
-        check_rotation
+        compute_rotation_counterclockwise
     using ..DefineShape:
-        sphere_shape
+        sphere_shape,
+        compute_sphere
     using Printf
     using Distributions
 
@@ -318,9 +329,6 @@ module Compute
     6. Shift the centre of sphere
     """
     function distribute_points(param, dist, points)
-        ###CHECK###
-        # check_rotation()
-        ###CHECK###
         # 1. Distribute points randomly in whole region
         # -----Prepare 3*num_points points, since points outside of sphere will be deleted
         x = rand(
@@ -364,6 +372,11 @@ module Compute
         Need to reconsider better implementation
         =#
 
+        ###CHECK###
+        # Use surface points instead of points distributed in the domain
+        x_sphere, y_sphere, z_sphere = compute_sphere()
+        ###CHECK###
+
         # 4. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
         x_sphere *= dist.semimajor
         y_sphere *= dist.semiminor
@@ -380,7 +393,7 @@ module Compute
 
         ###CHECK###
         # Compute angle by spheroid surface information
-        compute_angle(param, dist, points)
+        # compute_angle(param, dist, points)
         ###CHECK###
     end
 
@@ -704,6 +717,8 @@ gr(
     markersize = 10
 )
 using .ParamVar
+using .ComputeRotation:
+    check_rotation
 using .Compute:
     distribute_points,
     search_circumscribed_sphere,
@@ -758,6 +773,7 @@ distribute_points(param, dist, points)
 ###CHECK###
 # Plot distribution
 # plot_points(param, points)
+# check_rotation()
 ###CHECK###
 
 
