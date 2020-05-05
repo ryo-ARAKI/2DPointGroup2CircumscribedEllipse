@@ -222,16 +222,22 @@ module DefineShape
 
 
         #-----Use sphere & spheroid module information-----
-        # 1. Define line x = x₀+t, y=y₀, z=z₀
+        # 1. Define line x = t, y=0, z=0
         len_line = Int(param.x_lim*100)
-        x = range(sphere.centre_x, stop=sphere.centre_x, length=len_line)
-        y = range(sphere.centre_y-param.x_lim, stop=sphere.centre_y+param.x_lim, length=len_line)
-        z = range(sphere.centre_z, stop=sphere.centre_z, length=len_line)
+        x = range(-param.x_lim, stop=param.x_lim, length=len_line)
+        y = range(0.0, stop=0.0, length=len_line)
+        z = range(0.0, stop=0.0, length=len_line)
 
         # 2. Rotate line by angle
         x_z, y_z = compute_rotation_counterclockwise(x, y, spheroid.angle_z)  # Along z axis
         x_yz, z_y = compute_rotation_counterclockwise(x_z, z, spheroid.angle_y)  # Along y axis
 
+        # 3. Shift line by centre of spheroid
+        x_shift = x_yz .+ sphere.centre_x
+        y_shift = y_z .+ sphere.centre_y
+        z_shift = z_y .+ sphere.centre_z
+
+        #=
         #-----Use fixed points for debug-----
         # 1. Define points
         x = [-1.0, 1.0]; y = [0.0, 0.0]; z = [0.0, 0.0]
@@ -244,6 +250,8 @@ module DefineShape
         x_shift = x_yz .+ dist.shift_x
         y_shift = y_z .+ dist.shift_y
         z_shift = z_y .+ dist.shift_z
+        #-----Use fixed points for debug-----
+        =#
 
         x_shift, y_shift, z_shift
     end
