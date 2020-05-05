@@ -500,6 +500,45 @@ module Compute
 
 
     """
+    Compute moment along most distant points
+    """
+    function compute_moment_most_distant_points(param, index_list, x, y, z)
+
+        # Initialisation
+        moment_max = 1.0
+        index_smallest_moment = 0
+
+        for itr_index in index_list
+
+            # Compute distance as semimajor axis length & its rotation angle
+            semimajor_length, semimajor_angle_y, semimajor_angle_z = compute_semimajor_axis_angle(x[itr_index], y[itr_index], z[itr_index])
+
+            # 5. Apply inverse rotation of point group by semimajor axis angle
+            x_z, z_ = compute_rotation_counterclockwise(x, z, -semimajor_angle_y)  # Along y axis
+            x_, y_ = compute_rotation_counterclockwise(x_z, y, -semimajor_angle_z)  # Along z axis
+
+            # Compute moment (sum of distance to x axis)
+            moment = 0.0
+            for itr_point = 1:param.num_points
+                moment += compute_distance(
+                    0.0, 0.0, 0.0,
+                    0.0, y_[itr_point], z_[itr_point]
+                )
+            end
+            moment /= param.num_points
+
+            # Update index with minimum moment
+            if moment < moment_max
+                moment_max = moment
+                index_smallest_moment = itr_index
+            end
+        end
+
+        return index_smallest_moment
+    end
+
+
+    """
     Find circumscribed spheroid of given point group based on circumscribed sphere
     1. Shift by the centre coordinate
     2. Find the top **% most distant points
@@ -529,12 +568,12 @@ module Compute
         )
         println(num_distant)
 
-        # 3. Define semimajor axis length & angle
-        semimajor_length = compute_distance(
-            0.0, 0.0, 0.0,
-            distant_x, distant_y, distant_z
+
+        # 3. Compute moment along most distant points
+        index_smallest_moment = compute_moment_most_distant_points(
+            param, num_distant,
+            x_shift, y_shift, z_shift
         )
-        println(@sprintf "most distant point x: %.3f, y: %.3f, z: %.3f r: %.3f" distant_x distant_y distant_z semimajor_length)
 
 
         # 4. Define semimajor axis length & angle
@@ -549,11 +588,12 @@ module Compute
         println(@sprintf "most distant point with minimum moment ind:%i, x: %.3f, y: %.3f, z: %.3f r: %.3f" index_smallest_moment distant_x distant_y distant_z semimajor_length)
 
 
-        # 4. Apply inverse rotation of point group by semimajor axis angle
+        # 5. Apply inverse rotation of point group by semimajor axis angle
         x_z, z = compute_rotation_counterclockwise(x_shift, z_shift, -semimajor_angle_y)  # Along y axis
         x, y = compute_rotation_counterclockwise(x_z, y_shift, -semimajor_angle_z)  # Along z axis
 
-        # 5. Adjust semimajor axis: x -> x/a
+
+        # 6. Adjust semimajor axis: x -> x/a
         x_std = x / semimajor_length
 
         # parameter setting for while-loop
@@ -563,25 +603,27 @@ module Compute
 
         while flag_all_points_in_sphere
 
-            # 6. Adjust semiminor axis: y -> y/b & z -> z/b
+
+            # 7. Adjust semiminor axis: y -> y/b & z -> z/b
             y_std = y / semiminor_length
             z_std = z / semiminor_length
 
-            # 7. Confirm all points are included in the sphere
+
+            # 8. Confirm all points are included in the sphere
             for itr_point in 1:param.num_points
                 dist = compute_distance(
                     0.0, 0.0, 0.0,
                     x_std[itr_point], y_std[itr_point], z_std[itr_point]
                 )
 
-                # 7-2. If not, set flag to exit the loop
+                # 8-2. If not, set flag to exit the loop
                 if dist > 1
                     flag_all_points_in_sphere = false
                     break
                 end
             end
 
-            # 7-1. If so, decrease the semiminor axis length
+            # 8-1. If so, decrease the semiminor axis length
             if flag_all_points_in_sphere
                 semiminor_length -= delta
             end
