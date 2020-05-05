@@ -481,6 +481,25 @@ module Compute
 
 
     """
+    Compute distance as semimajor axis length & its rotation angle
+    """
+    function compute_semimajor_axis_angle(x, y, z)
+        # Compute distance & set it as semimajor axis length
+        semimajor_length = compute_distance(
+            0.0, 0.0, 0.0,
+            x, y, z
+        )
+
+        # Compute rotation angle
+        semimajor_angle_y = atan(z/semimajor_length, x/semimajor_length)  # Along y axis
+        semimajor_angle_z = asin(y/semimajor_length)  # Along z axis
+
+        return semimajor_length, semimajor_angle_y, semimajor_angle_z
+    end
+
+
+
+    """
     Find circumscribed spheroid of given point group based on circumscribed sphere
     1. Shift by the centre coordinate
     2. Find the top **% most distant points
@@ -517,8 +536,17 @@ module Compute
         )
         println(@sprintf "most distant point x: %.3f, y: %.3f, z: %.3f r: %.3f" distant_x distant_y distant_z semimajor_length)
 
-        semimajor_angle_y = atan(distant_z/semimajor_length, distant_x/semimajor_length)  # Along y axis
-        semimajor_angle_z = asin(distant_y/semimajor_length)  # Along z axis
+
+        # 4. Define semimajor axis length & angle
+        distant_x = x_shift[index_smallest_moment]
+        distant_y = y_shift[index_smallest_moment]
+        distant_z = z_shift[index_smallest_moment]
+        semimajor_length, semimajor_angle_y, semimajor_angle_z = compute_semimajor_axis_angle(
+            distant_x,
+            distant_y,
+            distant_z
+        )
+        println(@sprintf "most distant point with minimum moment ind:%i, x: %.3f, y: %.3f, z: %.3f r: %.3f" index_smallest_moment distant_x distant_y distant_z semimajor_length)
 
 
         # 4. Apply inverse rotation of point group by semimajor axis angle
