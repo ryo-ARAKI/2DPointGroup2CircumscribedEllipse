@@ -462,7 +462,7 @@ module Compute
         thresh_distant = 0.10
 
         # Compute distance for all particles
-        distant = zeros(Float64, param.num_points)
+        distant = Array{Float64}(undef, param.num_points)
         for itr_point = 1:param.num_points
             distant[itr_point] = compute_distance(
                 0.0, 0.0, 0.0,
@@ -608,9 +608,7 @@ module Compute
         distant_y = y_shift[index_smallest_moment]
         distant_z = z_shift[index_smallest_moment]
         semimajor_length, semimajor_angle_y, semimajor_angle_z = compute_semimajor_axis_angle(
-            distant_x,
-            distant_y,
-            distant_z
+            distant_x, distant_y, distant_z
         )
         println(@sprintf "most distant point with minimum moment ind:%i, x: %.3f, y: %.3f, z: %.3f r: %.3f" index_smallest_moment distant_x distant_y distant_z semimajor_length)
 
