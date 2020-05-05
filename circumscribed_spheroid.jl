@@ -281,21 +281,11 @@ module Compute
         z_shift = points.z .- dist.shift_z
 
         # 2. Find the most distant point
-        dist_max = 0.0
-
-        distant_x, distant_y, distant_z = [0.0 for _ = 1:3]
-        for itr_point = 1:param.num_points
-            dist = compute_distance(
-                0.0, 0.0, 0.0,
-                x_shift[itr_point], y_shift[itr_point], z_shift[itr_point]
-            )
-            if dist > dist_max
-                dist_max = dist
-                distant_x = x_shift[itr_point]
-                distant_y = y_shift[itr_point]
-                distant_z = z_shift[itr_point]
-            end
-        end
+        dist_max, distant_x, distant_y, distant_z = search_most_distant_point(
+            param,
+            0.0, 0.0, 0.0,
+            points.x, points.y, points.z
+        )
 
         # 3. Define semimajor axis length & angle
         semimajor_length = compute_distance(
@@ -413,21 +403,13 @@ module Compute
 
         while move >= 1.0e-12
             for itr_move = 1:num_move
+
                 # Find the most far point
-                dist_max = 0.0
-                object_x, object_y, object_z = [0.0 for _ = 1:3]
-                for itr_point = 1:param.num_points
-                    dist = compute_distance(
-                        centre_x, centre_y, centre_z,
-                        points.x[itr_point], points.y[itr_point], points.z[itr_point]
-                    )
-                    if dist > dist_max
-                        dist_max = dist
-                        object_x = points.x[itr_point]
-                        object_y = points.y[itr_point]
-                        object_z = points.z[itr_point]
-                    end
-                end
+                dist_max, object_x, object_y, object_z = search_most_distant_point(
+                    param,
+                    centre_x, centre_y, centre_z,
+                    points.x, points.y, points.z
+                )
 
                 # Move towards the most far point
                 centre_x += move * (object_x - centre_x)
@@ -447,6 +429,28 @@ module Compute
         sphere.centre_y = centre_y
         sphere.centre_z = centre_z
         sphere.radius = dist_max
+    end
+
+
+    """
+    Find the most distant points from zero-centred 3d coordinates
+    """
+    function search_most_distant_point(param, centre_x, centre_y, centre_z, x, y, z)
+
+        distant = Array{Float64}(undef, param.num_points)
+        for itr_point = 1:param.num_points
+            distant[itr_point] = compute_distance(
+                centre_x, centre_y, centre_z,
+                x[itr_point], y[itr_point], z[itr_point]
+            )
+        end
+        index_max = argmax(distant)
+        dist_max = distant[index_max]
+        distant_x = x[index_max]
+        distant_y = y[index_max]
+        distant_z = z[index_max]
+
+        return distant[index_max], x[index_max], y[index_max], z[index_max]
     end
 
 
