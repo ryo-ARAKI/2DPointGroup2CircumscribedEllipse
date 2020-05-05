@@ -506,7 +506,7 @@ module Compute
         x_std = x / semimajor_length
 
         # parameter setting for while-loop
-        semiminor_length = sphere.radius
+        semiminor_length = semimajor_length
         flag_all_points_in_sphere = true
         delta = 0.01
 
@@ -523,14 +523,14 @@ module Compute
                     x_std[itr_point], y_std[itr_point], z_std[itr_point]
                 )
 
-                # 6-2. If not, set flag to exit the loop
+                # 7-2. If not, set flag to exit the loop
                 if dist > 1
                     flag_all_points_in_sphere = false
                     break
                 end
             end
 
-            # 6-1. If so, decrease the semiminor axis length
+            # 7-1. If so, decrease the semiminor axis length
             if flag_all_points_in_sphere
                 semiminor_length -= delta
             end
