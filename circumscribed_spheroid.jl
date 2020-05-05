@@ -374,7 +374,7 @@ module Compute
 
         ###CHECK###
         # Use surface points instead of points distributed in the domain
-        x_sphere, y_sphere, z_sphere = compute_sphere()
+        # x_sphere, y_sphere, z_sphere = compute_sphere()
         ###CHECK###
 
         # 4. Adjust semimajor/minor axis: x -> ax, y -> by, z -> bz
